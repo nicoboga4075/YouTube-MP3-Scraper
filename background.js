@@ -1,21 +1,41 @@
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-	if (msg.command === "handcheck") {
-		sendResponse({status: "ok", message: "Handcheck done"});
-	}
-    if (msg.command === "install") {
-        chrome.runtime.sendNativeMessage(
-            "com.example.ytdlp_installer",
-            { command: "install" },
-            (response) => {
-                if (chrome.runtime.lastError) {
-                    sendResponse({ status: "error", message: chrome.runtime.lastError.message });
-                } else if (!response) {
-                    sendResponse({ status: "error", message: "No response from host" });
-                } else {
-                    sendResponse({ status: "ok", data: response });
-                }
+let nativePort = null;
+let popupPort = null;
+
+// Connexion from popup
+chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === "popup") {
+        popupPort = port;
+        port.onDisconnect.addListener(() => {
+            popupPort = null;
+        });
+        port.onMessage.addListener((msg) => {
+            if (msg.command === "handcheck") {
+                port.postMessage({
+                    message: "HANDCHECK_OK"
+                });
+                return;
             }
-        );
+            if (msg.command === "install") {
+                if (nativePort) {
+                    nativePort.disconnect();
+                    nativePort = null;
+                }
+                nativePort = chrome.runtime.connectNative("com.example.ytdlp_installer");
+                nativePort.onMessage.addListener((nativeMsg) => {
+                    if (popupPort) popupPort.postMessage(nativeMsg);
+                });
+                nativePort.onDisconnect.addListener(() => {
+                    const error = chrome.runtime.lastError;
+                    if (popupPort) popupPort.postMessage({
+                        type: "NATIVE_DISCONNECT",
+                        error: error?.message || null
+                    });
+                    nativePort = null;
+                });
+                nativePort.postMessage({
+                    command: "install"
+                });
+            }
+        });
     }
-	return true;
 });

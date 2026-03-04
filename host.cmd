@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 
-set "LOG_FILE=C:\yt-dlp\host.log"
+set "LOG_FILE=C:\yt-dlp\stdio.log"
 
 node -v >nul 2>&1
 IF %ERRORLEVEL% EQU 0 (

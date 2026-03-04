@@ -69,10 +69,48 @@
 		  text-align: center;
 		}
 		#extensionIcon {
-		  display:block;
-		  margin:0 auto 8px;
-		  filter:drop-shadow(0 0 6px var(--primary-color));
+		  display: block;
+		  margin: 0 auto 8px;
+		  filter: drop-shadow(0 0 6px var(--primary-color));
 		  width: 128px;
+		}
+		#progressContainer {
+		  display: none;
+		  margin-top: 8px;
+		}
+		#progressHeader {
+		  display: flex;
+		  justify-content: space-between;
+		  font-size: 10px;
+		  color: var(--primary-color);
+		  margin-bottom: 3px;
+		}
+		#progressLabel {
+		  overflow: hidden;
+		  text-overflow: ellipsis;
+		  white-space: nowrap;
+		  max-width: 280px;
+		}
+		#progressTrack {
+		  width: 100%;
+		  height: 10px;
+		  border: 1px solid var(--primary-color);
+		  box-shadow: 0 0 8px var(--primary-color);
+		  background: black;
+		}
+		#progressBar {
+		  height: 100%;
+		  width: 0%;
+		  background: var(--primary-color);
+		  box-shadow: 0 0 8px var(--primary-color);
+		  transition: width 0.3s ease;
+		}
+		#progressMeta {
+		  font-size: 10px;
+		  color: var(--secondary-color);
+		  text-shadow: 0 0 4px var(--secondary-color);
+		  margin-top: 3px;
+		  text-align: center;
 		}
 		</style>
 	</head>
@@ -83,7 +121,17 @@
 		<textarea id="outputTerminal" readonly></textarea>
 		<button id="saveBtn" disabled>💾 Export</button>
 		<div id="statusTerminal"></div>
-		<button id="installBtn">⚙️ Install</button>
+		<button id="installBtn">⚙️ Download</button>
+		<div id="progressContainer">
+		    <div id="progressHeader">
+		        <span id="progressLabel">🚀 Downloading...</span>
+		        <span id="progressPercent">0%</span>
+		    </div>
+		    <div id="progressTrack">
+		        <div id="progressBar"></div>
+		    </div>
+		    <div id="progressMeta"></div>
+		</div>
 		<script src="popup.js"></script>
 	</body>
 </html>

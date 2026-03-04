@@ -3,4 +3,15 @@ downloads
 urls.txt
 extension.crx
 extension.pem
-host.log
+*.log
+*.bak
+*.old
+Thumbs.db
+.DS_Store
+*.zip
+*.rar
+*.7z
+*.tmp
+*.temp
+*.mp3
+*.mp4
