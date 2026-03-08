@@ -162,14 +162,13 @@ async function runScraper() {
                 return new Promise((resolve, reject) => {
                     try {
                         const seenVideos = new Map();
-
-                        let lastCount = 0;
-                        let sameCountTime = 0;
+                        let lastHeight = 0;
+                        let idleRounds = 0;
                         const checkInterval = 500;
-                        const maxIdle = 4000;
+                        const maxIdleRounds = 3;
                         const step = () => {
                             try {
-                                window.scrollBy(0, 3000);
+                                window.scrollTo(0, document.documentElement.scrollHeight);
                                 document.querySelectorAll('ytd-playlist-video-renderer').forEach(el => {
                                     const a = el.querySelector('a#video-title');
                                     if (!a) return;
@@ -178,26 +177,21 @@ async function runScraper() {
                                     const title = a.textContent.trim();
                                     const artist = el.querySelector('ytd-channel-name #text a')?.textContent.trim();
                                     const duration = el.querySelector('ytd-thumbnail-overlay-time-status-renderer')?.textContent.trim().split('\n')[0].trim();
-                                    seenVideos.set(url, {
-                                        url,
-                                        title,
-                                        artist,
-                                        duration
-                                    });
+                                    seenVideos.set(url, { url, title, artist, duration });
                                 });
                                 chrome.runtime.sendMessage({
                                     type: "YT_SCRAPER_PROGRESS",
                                     count: seenVideos.size
                                 });
-                                if (seenVideos.size === lastCount) {
-                                    sameCountTime += checkInterval;
+                                const newHeight = document.documentElement.scrollHeight;
+                                if (newHeight === lastHeight) {
+                                    idleRounds++;
                                 } else {
-                                    lastCount = seenVideos.size;
-                                    sameCountTime = 0;
+                                    idleRounds = 0;
+                                    lastHeight = newHeight;
                                 }
-                                if (sameCountTime >= maxIdle) {
-                                    const results = [...seenVideos.values()];
-                                    resolve(results);
+                                if (idleRounds >= maxIdleRounds) {
+                                    resolve([...seenVideos.values()]);
                                 } else {
                                     setTimeout(step, checkInterval);
                                 }
