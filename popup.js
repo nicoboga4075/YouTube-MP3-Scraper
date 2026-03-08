@@ -10,14 +10,14 @@ bgPort.onMessage.addListener((msg) => {
     }
     if (msg.type === "NATIVE_DISCONNECT") {
         if (msg.error) {
-            outputTerminal.value += "> " + msg.error + "\n";
+            outputTerminal.value += "> " + cleanMessage(msg.error) + "\n";
             statusTerminal.textContent = `Status: Error`;
             hideProgress();
         } else {
             statusTerminal.textContent = `Status: Success`;
         }
-        installBtn.disabled = false;
         scanBtn.disabled = false;
+        installBtn.disabled = false;
         return;
     }
     if (msg.type === "DOWNLOAD_START") {
@@ -32,11 +32,7 @@ bgPort.onMessage.addListener((msg) => {
         return;
     }
     if (msg.type === "DOWNLOAD_DONE") {
-        const {
-            videoIndex,
-            totalUrls,
-            title
-        } = msg;
+        const { videoIndex, totalUrls, title } = msg;
         showProgress(`[${videoIndex}/${totalUrls}] ${title}`, 100, "Done ✓");
         outputTerminal.value += `> ✓ ${title}\n`;
         outputTerminal.scrollTop = outputTerminal.scrollHeight;
@@ -69,14 +65,14 @@ bgPort.onMessage.addListener((msg) => {
         return;
     }
     if (msg.message) {
-        outputTerminal.value += "> " + msg.message + "\n";
+        outputTerminal.value += "> " + cleanMessage(msg.message) + "\n";
         outputTerminal.scrollTop = outputTerminal.scrollHeight;
     }
 });
 
 bgPort.onDisconnect.addListener(() => {
     if (chrome.runtime.lastError) {
-        outputTerminal.value += "> " + chrome.runtime.lastError.message + "\n";
+        outputTerminal.value += "> " + cleanMessage (chrome.runtime.lastError.message) + "\n";
         statusTerminal.textContent = `Status: Error`;
         fetch(chrome.runtime.getURL("host.log"))
             .then(res => res.text())
@@ -90,8 +86,8 @@ bgPort.onDisconnect.addListener(() => {
     } else {
         statusTerminal.textContent = `Status: Idle`;
     }
-    installBtn.disabled = false;
     scanBtn.disabled = false;
+    installBtn.disabled = false;
 });
 
 bgPort.postMessage({
@@ -99,7 +95,7 @@ bgPort.postMessage({
 });
 
 function cleanMessage(message) {
-    return (message || "").normalize("NFKD").replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+    return (message || "Unknown error occured").normalize("NFKD").replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
 }
 
 function showProgress(label, percent, meta) {
@@ -136,7 +132,7 @@ async function runScraper() {
             target: {
                 tabId: tab.id
             },
-            func: async () => {
+            func: () => {
                 function cleanUrl(url) {
                     try {
                         const u = new URL(url);
@@ -147,17 +143,6 @@ async function runScraper() {
                     } catch {
                         return null;
                     }
-                }
-
-                function durationToMinutes(durationStr) {
-                    if (!durationStr) return 0;
-                    const parts = durationStr.split(':').map(p => parseInt(p.trim(), 10));
-                    if (parts.length === 2) { // mm:ss
-                        return parts[0] + parts[1] / 60;
-                    } else if (parts.length === 3) { // hh:mm:ss
-                        return parts[0] * 60 + parts[1] + parts[2] / 60;
-                    }
-                    return 0;
                 }
                 return new Promise((resolve, reject) => {
                     try {
@@ -206,18 +191,22 @@ async function runScraper() {
                 });
             }
         }, (results) => {
-            if (!results || !results[0]) {
-                outputTerminal.value = "> " + chrome.runtime.lastError.message + "\n";
+            scanBtn.disabled = false;
+            installBtn.disabled = false;
+            if (!results || !results[0] || !results[0].result) {
+                if (chrome.runtime.lastError) {
+                    outputTerminal.value = "> " + cleanMessage(chrome.runtime.lastError.message) + "\n";
+                } else {
+                    outputTerminal.value = "> No results found\n";
+                }
                 statusTerminal.textContent = `Status: Error`;
                 return;
             }
             window.scraperResults = results[0].result;
-            const urls = results[0].result.map(result => result.url);
+            const urls = window.scraperResults.map(result => result.url);
             outputTerminal.value = urls.join("\n");
-            statusTerminal.textContent = `Status: ${urls.length} videos found`;
-            saveBtn.disabled = urls.length === 0;
-            scanBtn.disabled = false;
-            installBtn.disabled = false;
+            statusTerminal.textContent = `Status: ${urls.length} video${urls.length === 1 ? '' : 's'} found`;;
+            saveBtn.disabled = false;
         });
     } catch (err) {
         outputTerminal.value += "> " + cleanMessage(err.message) + "\n";
@@ -227,6 +216,27 @@ async function runScraper() {
     }
 }
 
+async function runDownload() {
+    try {
+        scanBtn.disabled = true;
+        saveBtn.disabled = true;
+        installBtn.disabled = true;
+        const lines = outputTerminal.value
+          .split("\n")
+          .map(l => l.trim())
+          .filter(l => l.startsWith("https://www.youtube.com/"));
+        const payload = lines.length > 0
+          ? { command: "install", urls: lines }
+          : { command: "install" };
+        outputTerminal.value = "> Installation of Node.js if needed and tools...\n";
+        statusTerminal.textContent = `Status: Installation pending...`;
+        bgPort.postMessage(payload);
+    } catch (err) {
+        outputTerminal.value += "> " + cleanMessage(err.message) + "\n";
+        statusTerminal.textContent = `Status: Error`;
+    }    
+}
+
 closeBtn.addEventListener("click", () => {window.close()});
 
 scanBtn.addEventListener("click", runScraper);
@@ -234,7 +244,10 @@ scanBtn.addEventListener("click", runScraper);
 saveBtn.addEventListener("click", () => {
     try {
         hideProgress();
-        const lines = outputTerminal.value.split("\n").filter(Boolean);
+        const lines = outputTerminal.value
+          .split("\n")
+          .map(l => l.trim())
+          .filter(l => l.startsWith("https://www.youtube.com/"));
         if (!lines.length || lines.length === 0) return;
         const blob = new Blob([lines.join("\n")], {
             type: "text/plain"
@@ -251,18 +264,4 @@ saveBtn.addEventListener("click", () => {
     }
 });
 
-installBtn.addEventListener("click", () => {
-    installBtn.disabled = true;
-    scanBtn.disabled = true;
-    saveBtn.disabled = true;
-    const lines = (outputTerminal.value || "")
-      .split("\n")
-      .map(l => l.trim())
-      .filter(l => l.startsWith("https://"));
-    const payload = lines.length > 0
-      ? { command: "install", urls: lines }
-      : { command: "install" };
-    outputTerminal.value = "> Installation of Node.js if needed and tools...\n";
-    statusTerminal.textContent = `Status: Installation pending...`;
-    bgPort.postMessage(payload);
-});
+installBtn.addEventListener("click", runDownload);

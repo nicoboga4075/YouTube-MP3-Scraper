@@ -25,10 +25,9 @@ chrome.runtime.onConnect.addListener((port) => {
                     if (popupPort) popupPort.postMessage(nativeMsg);
                 });
                 nativePort.onDisconnect.addListener(() => {
-                    const error = chrome.runtime.lastError;
                     if (popupPort) popupPort.postMessage({
                         type: "NATIVE_DISCONNECT",
-                        error: error?.message || null
+                        error: chrome.runtime.lastError?.message || null
                     });
                     nativePort = null;
                 });

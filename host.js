@@ -31,7 +31,7 @@ function log(msg) {
 }
 
 function cleanMessage(message) {
-    return (message || "").normalize("NFKD").replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+    return (message || "Unknown error occured").normalize("NFKD").replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
 }
 
 log("Host started");
@@ -87,7 +87,7 @@ function download(toolName, callback) {
             try {
                 file = fs.createWriteStream(tempFile);
             } catch (err) {
-                log("WriteStream error: " + err.message);
+                log("WriteStream error: " + cleanMessage(err.message));
                 return callback(err);
             }
             res.pipe(file);
@@ -125,11 +125,11 @@ function download(toolName, callback) {
                 });
             });
             file.on("error", err => {
-                log("File stream error: " + err.message);
+                log("File stream error: " + cleanMessage(err.message));
                 callback(err);
             });
         }).on("error", err => {
-            log("Download error: " + err.message);
+            log("Download error: " + cleanMessage(err.message));
             fs.unlink(tempFile, () => callback(err));
         });
     }
@@ -147,30 +147,45 @@ function installIfNotExists(toolName, callback) {
     }
     download(toolName, (err) => {
         if (err) {
+            const errorMessage = cleanMessage(err.message);
             sendResponse({
-                message: `Error installing ${toolName}: ${err.message}`
+                message: `Error installing ${toolName}: ${errorMessage}`
             });
-            log(`Installation failed for ${toolName}: ${err.message}`);
+            log(`Installation failed for ${toolName}: ${errorMessage}`);
         }
         callback();
     });
 }
 
 function installAllTools() {
-    return new Promise((resolve) => {
-        const toolsList = Object.keys(tools);
-        let index = 0;
-        function next() {
-            if (index >= toolsList.length) {
-                sendResponse({
-                    message: "ALL_TOOLS_INSTALLED"
-                });
-                resolve();
-                return;
+    return new Promise((resolve, reject) => {
+        try {
+            const toolsList = Object.keys(tools);
+            let index = 0;
+            function next() {
+                if (index >= toolsList.length) {
+                    sendResponse({
+                        message: "ALL_TOOLS_INSTALLED"
+                    });
+                    resolve();
+                    return;
+                }
+                try {
+                    installIfNotExists(toolsList[index++], (err) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            next();
+                        }
+                    });
+                } catch (err) {
+                    reject(err);
+                }
             }
-            installIfNotExists(toolsList[index++], next);
+            next();
+        } catch (err) {
+            reject(err);
         }
-        next();
     });
 }
 
@@ -195,30 +210,29 @@ function formatBytes(bytes) {
 async function isValidAudio(filePath) {
     const ffprobePath = tools["ffprobe"].path;
     try {
-        const {
-            stdout: infoStdout
-        } = await execAsync(ffprobePath,
+        const { stdout: fileInfoStdout } = await execAsync(ffprobePath,
             [
                 "-v", "error",
                 "-show_streams",
                 "-of", "json",
                 filePath
-            ], {
+            ], 
+            {
                 encoding: "utf8"
             }
         );
-        const data = JSON.parse(infoStdout);
+        const data = JSON.parse(fileInfoStdout);
         const hasAudio = Array.isArray(data.streams) && data.streams.some(s => s.codec_type === "audio");
         if (!hasAudio) return false;
         return true;
     } catch (err) {
-        log("ffprobe validation error: " + err.message);
+        log("ffprobe validation error: " + cleanMessage(err.message));
         return false;
     }
 }
 
 let buffer = Buffer.alloc(0);
-process.stdin.on("data", async chunk => {
+process.stdin.on("data", async (chunk) => {
     buffer = Buffer.concat([buffer, chunk]);
     while (buffer.length >= 4) {
         const msgLength = buffer.readUInt32LE(0);
@@ -237,7 +251,7 @@ process.stdin.on("data", async chunk => {
                     });
                 }
                 let urls = [];
-                if (Array.isArray(msg.urls) && msg.urls.length > 0) {
+                if (msg.urls) {
                     log("Using URLs from popup terminal");
                     urls = msg.urls;
                 } else {
@@ -268,9 +282,7 @@ process.stdin.on("data", async chunk => {
                     log(url);
                     const startTime = Date.now();
                     try {
-                        const {
-                            stdout: dlStdout
-                        } = await execAsync(ytDlpPath,
+                        const { stdout: urlInfoStdout } = await execAsync(ytDlpPath,
                             [
                                 "--cookies-from-browser", "firefox",
                                 "--dump-json",
@@ -278,12 +290,13 @@ process.stdin.on("data", async chunk => {
                                 "--js-runtimes", "node",
                                 "--extractor-args", "youtube:player_client=android,web",
                                 url
-                            ], {
+                            ], 
+                            {
                                 encoding: "utf8"
                             }
                         );
                         processedCount++;
-                        const json = JSON.parse(dlStdout);
+                        const json = JSON.parse(urlInfoStdout);
                         const urlTitle = json.title.replace(/[\/\\:*?"<>|]/g, "_");
                         const urlDuration = formatTime(json.duration);
                         if (!json.categories?.includes("Music")) {
@@ -320,9 +333,7 @@ process.stdin.on("data", async chunk => {
                         const urlArtist = (json.artist || json.uploader || "Unknown").replace(/[\/\\:*?"<>|]/g, "_");
                         const urlAlbum = (json.album || json.playlist_title || "Unknown").replace(/[\/\\:*?"<>|]/g, "_");
                         const urlGenre = (json.genre || "Music").replace(/[\/\\:*?"<>|]/g, "_");
-                        const {
-                            stdout: downloadStdout
-                        } = await execAsync(ytDlpPath,
+                        const { stdout: downloadStdout } = await execAsync(ytDlpPath,
                             [
                                 "--cookies-from-browser", "firefox",
                                 "--ffmpeg-location", ffmpegPath,
@@ -349,7 +360,8 @@ process.stdin.on("data", async chunk => {
                                 "--newline",
                                 "-o", path.join(urlsDownloadFolder, `${urlTitle}.%(ext)s`),
                                 url
-                            ], {
+                            ], 
+                            {
                                 encoding: "utf8",
                                 maxBuffer: 1024 * 1024 * 50
                             }
@@ -398,18 +410,18 @@ process.stdin.on("data", async chunk => {
                     } catch (err) {
                         const endTime = Date.now();
                         const elapsedSeconds = Math.floor((endTime - startTime) / 1000);
-                        const message = cleanMessage(err.message);
-                        log(`Error processing URL ${url} after ${formatTime(elapsedSeconds)}: ${message}`);
+                        const errorMessage = cleanMessage(err.message);
+                        log(`Error processing URL ${url} after ${formatTime(elapsedSeconds)}: ${errorMessage}`);
                         if (
-                            message.includes("Sign in to confirm") ||
-                            message.includes("Confirm your age") ||
-                            message.includes("This video is unavailable") ||
-                            message.includes("Video unavailable") ||
-                            message.includes("Private video") ||
-                            message.includes("Unsupported URL") ||
-                            message.includes("No video formats found") ||
-                            message.includes("HTTP Error 403") ||
-                            message.includes("Requested format is not available")
+                            errorMessage.includes("Sign in to confirm") ||
+                            errorMessage.includes("Confirm your age") ||
+                            errorMessage.includes("This video is unavailable") ||
+                            errorMessage.includes("Video unavailable") ||
+                            errorMessage.includes("Private video") ||
+                            errorMessage.includes("Unsupported URL") ||
+                            errorMessage.includes("No video formats found") ||
+                            errorMessage.includes("HTTP Error 403") ||
+                            errorMessage.includes("Requested format is not available")
                         ) {
                             log("Skipped (non‑fatal error)");
                             sendResponse({
@@ -418,7 +430,7 @@ process.stdin.on("data", async chunk => {
                                 totalUrls,
                                 title: url,
                                 fatal: false,
-                                reason: message
+                                reason: errorMessage
                             });
                             continue;
                         }
@@ -429,7 +441,7 @@ process.stdin.on("data", async chunk => {
                             totalUrls,
                             title: url,
                             fatal: true,
-                            reason: message
+                            reason: errorMessage
                         });
                         break;
                     }
@@ -449,7 +461,7 @@ process.stdin.on("data", async chunk => {
                 });
             }
         } catch (err) {
-            log("JSON parse error: " + err.message);
+            log("JSON parse error: " + cleanMessage(err.message));
         }
     }
 });
