@@ -14,7 +14,7 @@ bgPort.onMessage.addListener((msg) => {
             statusTerminal.textContent = `Status: Error`;
             hideProgress();
         } else {
-            statusTerminal.textContent = `Status: Success`;
+            statusTerminal.textContent = progressPercent.textContent === "100%" ? `Status: Success` : `Status: Error`;
         }
         scanBtn.disabled = false;
         installBtn.disabled = false;
@@ -22,11 +22,7 @@ bgPort.onMessage.addListener((msg) => {
     }
     if (msg.type === "DOWNLOAD_START") {
         const percent = Math.round((msg.videoIndex - 1) / msg.totalUrls * 100);
-        showProgress(
-            `⬇ [${msg.videoIndex}/${msg.totalUrls}] ${msg.title}`,
-            percent,
-            `${msg.videoIndex}/${msg.totalUrls}`
-        );
+        showProgress(`⬇ ${msg.title}`, percent,`${msg.videoIndex}/${msg.totalUrls}`);
         outputTerminal.value += `> ⬇ ${msg.title}\n`;
         outputTerminal.scrollTop = outputTerminal.scrollHeight;
         return;
