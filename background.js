@@ -1,6 +1,30 @@
 let nativePort = null;
 let popupPort = null;
 
+function isYouTubeHost(url) {
+    return url?.startsWith("https://www.youtube.com/") ?? false;
+}
+
+function updateActionState(tabId, url) {
+    if (isYouTubeHost(url)) {
+        chrome.action.enable(tabId);
+    } else {
+        chrome.action.disable(tabId);
+    }
+}
+
+chrome.action.disable();
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status !== "complete" || !tab.url) return;
+    updateActionState(tabId, tab.url);
+});
+
+chrome.tabs.onActivated.addListener(async ({ tabId }) => {
+    const tab = await chrome.tabs.get(tabId);
+    updateActionState(tabId, tab.url);
+});
+
 // Connexion from popup
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name === "popup") {
