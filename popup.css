@@ -1,0 +1,380 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+* {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+:root {
+	--bg: #012456;
+	--bg-deep: #001733;
+	--bg-panel: #01173a;
+	--border: #1e5fa8;
+	--accent: #2d9cdb;
+	--accent2: #eeff00;
+	--text: #ccddff;
+	--text-dim: #6888bb;
+	--text-ok: #5af78e;
+	--text-warn: #ffcc00;
+	--text-err: #ff5555;
+	--font: 'Poppins', sans-serif;
+}
+
+body {
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font);
+	font-size: 11px;
+	width: 580px;
+	user-select: none;
+	overflow: hidden;
+}
+
+#titlebar {
+	background: var(--bg-deep);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 5px 10px;
+	border-bottom: 1px solid var(--border);
+	height: 30px;
+}
+
+#titlebar-left {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+#titlebar-icon {
+	width: 16px;
+	height: 16px;
+	background: url('icon.png');
+	clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%);
+	flex-shrink: 0;
+	background-size: cover;
+	background-repeat: round;
+}
+
+#titlebar-title {
+	font-size: 11px;
+	color: var(--text);
+	letter-spacing: 0.02em;
+}
+
+#titlebar-controls {
+	display: flex;
+	gap: 1px;
+}
+
+.wbtn {
+	width: 44px;
+	height: 22px;
+	background: transparent;
+	border: none;
+	color: var(--text-dim);
+	font-size: 12px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background 0.1s;
+}
+
+.wbtn:hover {
+	background: rgba(255, 255, 255, 0.1);
+	color: white;
+}
+
+.wbtn.close:hover {
+	background: #e81123;
+	color: white;
+}
+
+#shell {
+	padding: 10px 12px 12px;
+}
+
+#app-header {
+	color: var(--text-dim);
+	font-size: 10px;
+	line-height: 1.7;
+	margin-bottom: 10px;
+	border-bottom: 1px solid var(--border);
+	padding-bottom: 6px;
+}
+
+#app-header .hi {
+	color: var(--text-ok);
+}
+
+#app-header .hl {
+	color: var(--text);
+}
+
+.btn-row {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 8px;
+}
+
+button.action-btn {
+	flex: 1;
+	background: var(--bg-deep);
+	border: 1px solid var(--border);
+	color: var(--text);
+	font-family: var(--font);
+	font-size: 11px;
+	padding: 7px 10px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	transition: all 0.15s;
+	position: relative;
+	overflow: hidden;
+}
+
+button.action-btn .btn-icon {
+	font-size: 13px;
+	line-height: 1;
+}
+
+button.action-btn .btn-label {
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	color: var(--accent);
+	text-transform: uppercase;
+}
+
+button.action-btn .btn-sub {
+	font-size: 9px;
+	color: var(--text-dim);
+	letter-spacing: 0.02em;
+}
+
+button.action-btn::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 3px;
+	background: var(--border);
+	transition: background 0.15s;
+}
+
+button.action-btn:hover {
+	background: rgba(45, 156, 219, 0.1);
+	border-color: var(--accent);
+	color: white;
+}
+
+button.action-btn:hover .btn-label {
+	color: white;
+}
+
+button.action-btn:hover::before {
+	background: var(--accent);
+}
+
+button.action-btn:disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+}
+
+button.action-btn:disabled:hover {
+	background: var(--bg-deep);
+	border-color: var(--border);
+}
+
+button.action-btn:disabled:hover::before {
+	background: var(--border);
+}
+
+button.action-btn.full {
+	flex: none;
+	width: 100%;
+	margin-bottom: 8px;
+}
+
+#output-wrap {
+	background: var(--bg-deep);
+	border: 1px solid var(--border);
+	margin-bottom: 8px;
+}
+
+#output-header {
+	background: var(--bg-panel);
+	border-bottom: 1px solid var(--border);
+	padding: 3px 8px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	color: var(--text-dim);
+	font-size: 10px;
+}
+
+#output-header-left {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	display: inline-block;
+}
+
+.dot-r {
+	background: #ff5555;
+}
+
+.dot-y {
+	background: #ffcc00;
+}
+
+.dot-g {
+	background: #5af78e;
+}
+
+#outputTerminal {
+	width: 100%;
+	height: 165px;
+	background: transparent;
+	color: var(--text);
+	border: none;
+	resize: none;
+	padding: 8px;
+	font-family: var(--font);
+	font-size: 11px;
+	line-height: 1.6;
+	outline: none;
+	scrollbar-width: thin;
+	scrollbar-color: var(--border) var(--bg-deep);
+}
+
+#outputTerminal::-webkit-scrollbar {
+	width: 8px;
+}
+
+#outputTerminal::-webkit-scrollbar-track {
+	background: var(--bg-deep);
+}
+
+#outputTerminal::-webkit-scrollbar-thumb {
+	background: var(--border);
+	border-left: 2px solid var(--bg-deep);
+}
+
+#statusTerminal {
+	font-size: 10px;
+	color: var(--text-warn);
+	padding: 3px 2px 6px;
+	min-height: 20px;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+#statusTerminal.ok {
+	color: var(--text-ok);
+}
+
+#statusTerminal.err {
+	color: var(--text-err);
+}
+
+#progressContainer {
+	display: none;
+	margin-top: 4px;
+	background: var(--bg-deep);
+	border: 1px solid var(--border);
+	padding: 8px 10px;
+}
+
+#progressHeader {
+	display: flex;
+	justify-content: space-between;
+	font-size: 10px;
+	color: var(--text);
+	margin-bottom: 4px;
+}
+
+#progressLabel {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 380px;
+	color: var(--text-ok);
+}
+
+#progressPercent {
+	color: var(--accent2);
+}
+
+#progressTrack {
+	width: 100%;
+	height: 8px;
+	background: var(--bg-panel);
+	border: 1px solid var(--border);
+	overflow: hidden;
+}
+
+#progressBar {
+	height: 100%;
+	width: 0%;
+	background: linear-gradient(90deg, var(--accent) 0%, #5af78e 100%);
+	transition: width 0.3s ease;
+	position: relative;
+}
+
+#progressBar::after {
+	content: '';
+	position: absolute;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	width: 20px;
+	background: rgba(255, 255, 255, 0.3);
+	animation: shimmer 1s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+	0% {
+		opacity: 0.3;
+	}
+
+	50% {
+		opacity: 0.8;
+	}
+
+	100% {
+		opacity: 0.3;
+	}
+}
+
+#progressMeta {
+	font-size: 10px;
+	color: var(--text-dim);
+	margin-top: 4px;
+	display: flex;
+	gap: 12px;
+}
+
+body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	background: repeating-linear-gradient(0deg,
+			transparent,
+			transparent 2px,
+			rgba(0, 0, 0, 0.04) 2px,
+			rgba(0, 0, 0, 0.04) 4px);
+	pointer-events: none;
+	z-index: 9999;
+}

@@ -3,10 +3,10 @@ const fs = require("fs");
 const path = require("path");
 const logFile = "C:\\yt-dlp\\host.log";
 const tools = { 
-	"yt-dlp": {"path": "C:\\yt-dlp\\yt-dlp.exe", "url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"},
-	"ffmpeg": {"path": "C:\\ffmpeg\\bin\\ffmpeg.exe", "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"},
-	"ffplay": {"path": "C:\\ffmpeg\\bin\\ffplay.exe", "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"},
-	"ffprobe": {"path": "C:\\ffmpeg\\bin\\ffprobe.exe", "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"}
+    "yt-dlp": {"path": "C:\\yt-dlp\\yt-dlp.exe", "url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"},
+    "ffmpeg": {"path": "C:\\ffmpeg\\bin\\ffmpeg.exe", "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"},
+    "ffplay": {"path": "C:\\ffmpeg\\bin\\ffplay.exe", "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"},
+    "ffprobe": {"path": "C:\\ffmpeg\\bin\\ffprobe.exe", "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"}
 };
 const urlsFile = "C:\\yt-dlp\\urls.txt";
 const urlsDownloadFolder = "C:\\yt-dlp\\downloads";
@@ -236,17 +236,24 @@ process.stdin.on("data", async chunk => {
                         recursive: true
                     });
                 }
-                if (!fs.existsSync(urlsFile)) {
-                    log("urls.txt not found");
-                    sendResponse({
-                        type: "NATIVE_DISCONNECT",
-                        error: "urls.txt not found. Please export your URLs first by clicking the Export button."
-                    });
-                    return;
+                let urls = [];
+                if (Array.isArray(msg.urls) && msg.urls.length > 0) {
+                    log("Using URLs from popup terminal");
+                    urls = msg.urls;
+                } else {
+                    if (!fs.existsSync(urlsFile)) {
+                        log("urls.txt not found");
+                        sendResponse({
+                            type: "NATIVE_DISCONNECT",
+                            error: "urls.txt not found. Please export your URLs first by clicking the Export button."
+                        });
+                        return;
+                    }
+                    log("Using URLs from urls.txt");
+                    urls = fs.readFileSync(urlsFile, "utf-8")
+                        .split(/\r?\n/)
+                        .filter(Boolean);
                 }
-                const urls = fs.readFileSync(urlsFile, "utf-8")
-                    .split(/\r?\n/)
-                    .filter(Boolean);
                 const ytDlpPath = tools["yt-dlp"].path;
                 const ffmpegPath = tools["ffmpeg"].path;
                 const totalUrls = urls.length;

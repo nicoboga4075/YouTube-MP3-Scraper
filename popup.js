@@ -14,7 +14,7 @@ bgPort.onMessage.addListener((msg) => {
             statusTerminal.textContent = `Status: Error`;
             hideProgress();
         } else {
-            statusTerminal.textContent = `Status: All downloads finished`;
+            statusTerminal.textContent = `Status: Success`;
         }
         installBtn.disabled = false;
         scanBtn.disabled = false;
@@ -88,7 +88,7 @@ bgPort.onDisconnect.addListener(() => {
                 }
             });
     } else {
-        statusTerminal.textContent = `Status: All downloads finished`;
+        statusTerminal.textContent = `Status: Idle`;
     }
     installBtn.disabled = false;
     scanBtn.disabled = false;
@@ -127,7 +127,6 @@ async function runScraper() {
             active: true,
             currentWindow: true
         });
-        if (!tab) throw new Error("No active tab found");
         chrome.runtime.onMessage.addListener(function listener(msg, sender, sendResponse) {
             if (msg.type === "YT_SCRAPER_PROGRESS") {
                 statusTerminal.textContent = `Status: ${msg.count} videos detected...`;
@@ -177,8 +176,8 @@ async function runScraper() {
                                     const url = cleanUrl(a.href);
                                     if (!url) return;
                                     const title = a.textContent.trim();
-                                    const artist = el.querySelector('ytd-channel-name #text a')?.textContent.trim();;
-                                    const duration = el.querySelector('ytd-thumbnail-overlay-time-status-renderer')?.textContent.trim().split('\n')[0].trim();;
+                                    const artist = el.querySelector('ytd-channel-name #text a')?.textContent.trim();
+                                    const duration = el.querySelector('ytd-thumbnail-overlay-time-status-renderer')?.textContent.trim().split('\n')[0].trim();
                                     seenVideos.set(url, {
                                         url,
                                         title,
@@ -227,12 +226,14 @@ async function runScraper() {
             installBtn.disabled = false;
         });
     } catch (err) {
-        outputTerminal.value += "> " + cleanMessage(err.message) + "\n";;
+        outputTerminal.value += "> " + cleanMessage(err.message) + "\n";
         statusTerminal.textContent = `Status: Error`;
         scanBtn.disabled = false;
         installBtn.disabled = false;
     }
 }
+
+closeBtn.addEventListener("click", () => {window.close()});
 
 scanBtn.addEventListener("click", runScraper);
 
@@ -260,9 +261,14 @@ installBtn.addEventListener("click", () => {
     installBtn.disabled = true;
     scanBtn.disabled = true;
     saveBtn.disabled = true;
+    const lines = (outputTerminal.value || "")
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => l.startsWith("https://"));
+    const payload = lines.length > 0
+      ? { command: "install", urls: lines }
+      : { command: "install" };
     outputTerminal.value = "> Installation of Node.js if needed and tools...\n";
     statusTerminal.textContent = `Status: Installation pending...`;
-    bgPort.postMessage({
-        command: "install"
-    });
+    bgPort.postMessage(payload);
 });

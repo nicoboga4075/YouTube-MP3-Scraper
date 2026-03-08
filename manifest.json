@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Link Scraper",
+  "name": "YouTube MP3 Scraper",
   "author": "Nicolas BOGALHEIRO",
-  "version": "1.0",
-  "description": "Get all YouTube video links (https://www.youtube.com/watch?v=X) from the active tab",
+  "version": "1.0.0",
+  "description": "Scrap YouTube video links (https://www.youtube.com/watch?v=X) and download MP3 audio",
   "permissions": ["activeTab", "scripting", "nativeMessaging"],
+  "host_permissions": ["https://www.youtube.com/*"],
   "background": {
     "service_worker": "background.js"
   },

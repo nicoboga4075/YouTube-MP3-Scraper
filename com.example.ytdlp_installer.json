@@ -1,6 +1,6 @@
 {
   "name": "com.example.ytdlp_installer",
-  "description": "Install YT-DLP",
+  "description": "Install YT-DLP & Download MP3",
   "path": "C:\\yt-dlp\\host.cmd",
   "type": "stdio",
   "allowed_origins": [

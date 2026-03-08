@@ -1,137 +1,75 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="UTF-8">
-		<title>YouTube Link Scraper</title>
-		<link rel="icon" type="image/png" href="icon.png">
-		<style>
-		* {
-		  box-sizing: border-box;
-		  font-family: Poppins;
-		}
-		:root {
-		  --primary-color: #00ff00;
-		  --secondary-color: #ffff00;
-		  --background-color: black;
-		}
-		body {
-		  margin: 0;
-		  background: var(--background-color);
-		  color: var(--primary-color);
-		  width: 380px;
-		  padding: 10px;
-		}
-		h1 {
-		  font-size: 14px;
-		  color: var(--primary-color);
-		  text-align: center;
-		  margin-bottom: 10px;
-		  text-shadow: 0 0 8px var(--primary-color);
-		}
-		textarea {
-		  width: 100%;
-		  height: 190px;
-		  background: var(--background-color);
-		  color: var(--primary-color);
-		  border: 1px solid var(--primary-color);
-		  resize: none;
-		  padding: 6px;
-		  font-size: 11px;
-		  box-shadow: 0 0 10px var(--primary-color) inset;
-		  overflow-y: auto;
-		}
-		button {
-		  width: 100%;
-		  margin-top: 8px;
-		  padding: 8px;
-		  background: var(--background-color);
-		  color: var(--primary-color);
-		  border: 1px solid var(--primary-color);
-		  cursor: pointer;
-		  font-size: 12px;
-		  text-shadow: 0 0 5px var(--primary-color);
-		  box-shadow: 0 0 10px var(--primary-color);
-		}
-		button:hover {
-		  background: var(--primary-color);
-		  color: var(--background-color);
-		  box-shadow: 0 0 20px var(--primary-color);
-		}
-		button:disabled {
-		  opacity: 0.5;
-		  cursor: not-allowed;
-		}
-		#statusTerminal {
-		  margin-top: 6px;
-		  font-size: 11px;
-		  color: var(--secondary-color);
-		  text-shadow: 0 0 5px var(--secondary-color);
-		  text-align: center;
-		}
-		#extensionIcon {
-		  display: block;
-		  margin: 0 auto 8px;
-		  filter: drop-shadow(0 0 6px var(--primary-color));
-		  width: 128px;
-		}
-		#progressContainer {
-		  display: none;
-		  margin-top: 8px;
-		}
-		#progressHeader {
-		  display: flex;
-		  justify-content: space-between;
-		  font-size: 10px;
-		  color: var(--primary-color);
-		  margin-bottom: 3px;
-		}
-		#progressLabel {
-		  overflow: hidden;
-		  text-overflow: ellipsis;
-		  white-space: nowrap;
-		  max-width: 280px;
-		}
-		#progressTrack {
-		  width: 100%;
-		  height: 10px;
-		  border: 1px solid var(--primary-color);
-		  box-shadow: 0 0 8px var(--primary-color);
-		  background: black;
-		}
-		#progressBar {
-		  height: 100%;
-		  width: 0%;
-		  background: var(--primary-color);
-		  box-shadow: 0 0 8px var(--primary-color);
-		  transition: width 0.3s ease;
-		}
-		#progressMeta {
-		  font-size: 10px;
-		  color: var(--secondary-color);
-		  text-shadow: 0 0 4px var(--secondary-color);
-		  margin-top: 3px;
-		  text-align: center;
-		}
-		</style>
-	</head>
-	<body>
-		<h1>YouTube Link Scraper</h1>
-		<img id="extensionIcon" src="icon.png">
-		<button id="scanBtn">🔍 Scan</button>
-		<textarea id="outputTerminal" readonly></textarea>
-		<button id="saveBtn" disabled>💾 Export</button>
-		<div id="statusTerminal"></div>
-		<button id="installBtn">⚙️ Download</button>
-		<div id="progressContainer">
-		    <div id="progressHeader">
-		        <span id="progressLabel">🚀 Downloading...</span>
-		        <span id="progressPercent">0%</span>
-		    </div>
-		    <div id="progressTrack">
-		        <div id="progressBar"></div>
-		    </div>
-		    <div id="progressMeta"></div>
-		</div>
-		<script src="popup.js"></script>
-	</body>
+  <head>
+    <meta charset="UTF-8">
+    <title>YouTube MP3 Scraper</title>
+    <link rel="icon" type="image/png" href="icon.png">
+	<link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <div id="titlebar">
+      <div id="titlebar-left">
+        <div id="titlebar-icon"></div>
+        <span id="titlebar-title">YouTube MP3 Scraper</span>
+      </div>
+      <div id="titlebar-controls">
+        <button id="closeBtn" class="wbtn close">✕</button>
+      </div>
+    </div>
+    <div id="shell">
+      <div id="app-header">
+		Auteur : <span class="hl">Nicolas BOGALHEIRO</span> &nbsp;·&nbsp;
+        Répertoire : <span class="hl">C:\yt-dlp</span> &nbsp;·&nbsp;
+		Version : <span class="hl">1.0.0</span> <span class="hi">✓</span> &nbsp;·&nbsp;
+		Release : <span class="hl">08/03/2026</span>
+      </div>
+      <button class="action-btn full" id="scanBtn">
+        <span class="btn-icon">🔍</span>
+        <span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px">
+          <span class="btn-label">Scan</span>
+          <span class="btn-sub">Scraper les vidéos YouTube (URLs) sur l'onglet actif</span>
+        </span>
+      </button>
+      <div id="output-wrap">
+        <div id="output-header">
+          <div id="output-header-left">
+            <span class="dot dot-r"></span>
+            <span class="dot dot-y"></span>
+            <span class="dot dot-g"></span>
+            <span style="margin-left:4px">TERMINAL</span>
+          </div>
+          <span>Node · Chrome</span>
+        </div>
+        <textarea id="outputTerminal" readonly></textarea>
+      </div>
+      <div id="statusTerminal"></div>
+      <div class="btn-row">
+        <button class="action-btn" id="saveBtn" disabled>
+          <span class="btn-icon">💾</span>
+          <span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px">
+            <span class="btn-label">Export</span>
+            <span class="btn-sub">Sauvegarder la liste au format TXT</span>
+          </span>
+        </button>
+        <button class="action-btn" id="installBtn">
+          <span class="btn-icon">⬇️</span>
+          <span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px">
+            <span class="btn-label">Download</span>
+            <span class="btn-sub">Télécharger l'audio au format MP3</span>
+          </span>
+        </button>
+      </div>
+      <div id="progressContainer">
+        <div id="progressHeader">
+          <span id="progressLabel"></span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div id="progressTrack">
+          <div id="progressBar"></div>
+        </div>
+        <div id="progressMeta"></div>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
 </html>

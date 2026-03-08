@@ -32,9 +32,7 @@ chrome.runtime.onConnect.addListener((port) => {
                     });
                     nativePort = null;
                 });
-                nativePort.postMessage({
-                    command: "install"
-                });
+                nativePort.postMessage(msg);
             }
         });
     }
