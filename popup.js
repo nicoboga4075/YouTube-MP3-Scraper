@@ -132,7 +132,8 @@ async function runScraper() {
             target: {
                 tabId: tab.id
             },
-            func: () => {
+            args: [tab.url],
+            func: (tabUrl) => {
                 function cleanUrl(url) {
                     try {
                         const u = new URL(url);
@@ -146,6 +147,13 @@ async function runScraper() {
                 }
                 return new Promise((resolve, reject) => {
                     try {
+                        if (cleanUrl(tabUrl)) {
+                            const title = document.querySelector('h1.ytd-watch-metadata')?.textContent.trim();
+                            const artist = document.querySelector('#owner #channel-name a')?.textContent.trim();
+                            const duration = document.querySelector('.ytp-time-duration')?.textContent.trim();
+                            resolve([{ url: cleanUrl(tabUrl), title, artist, duration }]);
+                            return;
+                        }
                         const seenVideos = new Map();
                         let lastHeight = 0;
                         let idleRounds = 0;
@@ -221,13 +229,21 @@ async function runDownload() {
         scanBtn.disabled = true;
         saveBtn.disabled = true;
         installBtn.disabled = true;
+        let payload = { command: "install"};
         const lines = outputTerminal.value
           .split("\n")
           .map(l => l.trim())
           .filter(l => l.startsWith("https://www.youtube.com/"));
-        const payload = lines.length > 0
-          ? { command: "install", urls: lines }
-          : { command: "install" };
+        const [tab] = await chrome.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+        if (tab.url.startsWith("https://www.youtube.com/watch?v=")){
+            payload.urls = [tab.url];
+        }
+        else if (lines.length > 0) {
+            payload.urls = lines;
+        }
         outputTerminal.value = "> Installation of Node.js if needed and tools...\n";
         statusTerminal.textContent = `Status: Installation pending...`;
         bgPort.postMessage(payload);
