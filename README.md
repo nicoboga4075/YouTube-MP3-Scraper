@@ -361,6 +361,8 @@ L'utilisateur active le mode développeur sur `chrome://extensions/` et glisse-d
   └─ NATIVE_DISCONNECT → statut final
 ```
 
+🚨 Certaines vidéos peuvent être identifiées comme des fichiers non audio alors qu’elles sont bien des musiques.
+
 ---
 
 ## ✅ Checklist de déploiement
@@ -388,3 +390,7 @@ L'utilisateur active le mode développeur sur `chrome://extensions/` et glisse-d
 | Téléchargement bloqué sur une URL | Vidéo privée ou restriction géographique | Consulter `host.log` pour le détail de l'erreur yt-dlp |
 | `NATIVE_DISCONNECT` sans message | `host.cmd` introuvable ou erreur de registre | Vérifier le chemin dans le JSON et la clé de registre |
 | Fichier MP3 absent après téléchargement | Validation ffprobe échouée | Consulter `host.log` → le fichier a été supprimé car invalide |
+| Tous les téléchargements échouent | yt-dlp n'est pas à jour | Ouvrir Powershell ou l'Invite de commandes et lancer `C:\yt-dlp\yt-dlp.exe -U` |
+
+La solution est parfois de rafraîchir la page ou bien de fermer le navigateur, la fenêtre ou l'onglet complètement puis de réessayer.
+Pour arrêter le téléchargement global, il est préférable de fermer le navigateur puis la session soit, si ce n'est pas suffisant, de redémarrer le PC.

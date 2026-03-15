@@ -267,6 +267,14 @@ process.stdin.on("data", async (chunk) => {
                     urls = fs.readFileSync(urlsFile, "utf-8")
                         .split(/\r?\n/)
                         .filter(Boolean);
+                    if (urls.length === 0) {
+                        log("urls.txt empty");
+                        sendResponse({
+                            type: "NATIVE_DISCONNECT",
+                            error: "urls.txt empty. Please export your URLs first by clicking the Export button."
+                        });
+                        return;
+                    }
                 }
                 const ytDlpPath = tools["yt-dlp"].path;
                 const ffmpegPath = tools["ffmpeg"].path;
@@ -286,6 +294,7 @@ process.stdin.on("data", async (chunk) => {
                             [
                                 "--cookies-from-browser", "firefox",
                                 "--dump-json",
+                                "--no-playlist",
                                 "--encoding", "utf-8",
                                 "--js-runtimes", "node",
                                 "--extractor-args", "youtube:player_client=android,web",
@@ -297,18 +306,25 @@ process.stdin.on("data", async (chunk) => {
                         );
                         processedCount++;
                         const json = JSON.parse(urlInfoStdout);
+                        log(json);
                         const urlTitle = json.title.replace(/[\/\\:*?"<>|]/g, "_");
                         const urlDuration = formatTime(json.duration);
                         if (!json.categories?.includes("Music")) {
-                            log(`Skipped (not music): ${urlTitle} | ${urlDuration}`);
-                            sendResponse({
-                                type: "DOWNLOAD_SKIPPED",
-                                videoIndex,
-                                totalUrls,
-                                title: urlTitle,
-                                reason: "not music"
-                            });
-                            continue;
+                            const matchRegexMusic = /\b(officiel|official|audio|clip|lyrics|visualizer)\b/i.test(json.title)
+                            || /\b(vevo)\b/i.test(json.channel ?? "")
+                            || /\b(pop|rock|rap|rnb|hip.?hop)\b/i.test((json.tags ?? []).join(" "))
+                            || /\b(pop|rock|rap|rnb|hip.?hop)\b/i.test(json.description ?? "");
+                            if (json.categories?.includes("Education") || !matchRegexMusic || json.duration >= 600) {
+                                log(`Skipped (not music): ${urlTitle} | ${urlDuration}`);
+                                sendResponse({
+                                    type: "DOWNLOAD_SKIPPED",
+                                    videoIndex,
+                                    totalUrls,
+                                    title: urlTitle,
+                                    reason: "not music"
+                                });
+                                continue;
+                            }
                         }
                         musicCount++;
                         log(`Downloading music: ${urlTitle} | ${urlDuration}`);
@@ -332,11 +348,12 @@ process.stdin.on("data", async (chunk) => {
                         });
                         const urlArtist = (json.artist || json.uploader || "Unknown").replace(/[\/\\:*?"<>|]/g, "_");
                         const urlAlbum = (json.album || json.playlist_title || "Unknown").replace(/[\/\\:*?"<>|]/g, "_");
-                        const urlGenre = (json.genre || "Music").replace(/[\/\\:*?"<>|]/g, "_");
+                        const urlGenre = (json.genre || "Unknown").replace(/[\/\\:*?"<>|]/g, "_");
                         const { stdout: downloadStdout } = await execAsync(ytDlpPath,
                             [
                                 "--cookies-from-browser", "firefox",
                                 "--ffmpeg-location", ffmpegPath,
+                                "--no-playlist",
                                 "--encoding", "utf-8",
                                 "--js-runtimes", "node",
                                 "--extractor-args", "youtube:player_client=android,web",
@@ -443,7 +460,7 @@ process.stdin.on("data", async (chunk) => {
                             fatal: true,
                             reason: errorMessage
                         });
-                        break;
+                        return;
                     }
                 }
                 const endTimeGlobal = Date.now();
