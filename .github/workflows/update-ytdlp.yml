@@ -14,39 +14,70 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      # 🔍 Fetch latest version (robuste + retry + auth)
       - name: Get latest yt-dlp version
         id: latest
         run: |
-          VERSION=$(curl -s https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest \
-            | jq -r '.tag_name')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Get current version from package.json
+          set -e
+          for i in 1 2 3; do
+            echo "Attempt $i..."
+            RESPONSE=$(curl -s \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest)
+            VERSION=$(echo "$RESPONSE" | jq -r '.tag_name')
+            if [ -n "$VERSION" ] && [ "$VERSION" != "null" ]; then
+              echo "Latest version: $VERSION"
+              echo "version=$VERSION" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Retrying..."
+            sleep 2
+          done
+          echo "❌ Failed to fetch yt-dlp version"
+          echo "$RESPONSE"
+          exit 1
+      # 📦 Read current version
+      - name: Get current version
         id: current
         run: |
           VERSION=$(jq -r '.ytdlpVersion // "none"' package.json)
+          echo "Current version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Update package.json
-        if: steps.latest.outputs.version != steps.current.outputs.version
+      # 🧠 Decide if update needed
+      - name: Check if update needed
+        id: compare
         run: |
-          jq '.ytdlpVersion = "${{ steps.latest.outputs.version }}"' package.json > tmp.json \
-            && mv tmp.json package.json
-
+          if [ "${{ steps.latest.outputs.version }}" != "${{ steps.current.outputs.version }}" ]; then
+            echo "update=true" >> $GITHUB_OUTPUT
+          else
+            echo "update=false" >> $GITHUB_OUTPUT
+          fi
+      # ✏️ Update file
+      - name: Update package.json
+        if: steps.compare.outputs.update == 'true'
+        run: |
+          jq '.ytdlpVersion = "${{ steps.latest.outputs.version }}"' package.json > tmp.json
+          mv tmp.json package.json
+      # 🚀 Create PR
       - name: Create Pull Request
-        if: steps.latest.outputs.version != steps.current.outputs.version
+        if: steps.compare.outputs.update == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update/ytdlp-${{ steps.latest.outputs.version }}
           title: "⬆️ yt-dlp ${{ steps.current.outputs.version }} → ${{ steps.latest.outputs.version }}"
           body: |
+            ## 🚀 yt-dlp Update
+
             | | Version |
             |---|---|
             | **Current** | `${{ steps.current.outputs.version }}` |
             | **New** | `${{ steps.latest.outputs.version }}` |
-
-            **Changelog:** https://github.com/yt-dlp/yt-dlp/releases/tag/${{ steps.latest.outputs.version }}
+            🔗 Changelog:
+            https://github.com/yt-dlp/yt-dlp/releases/tag/${{ steps.latest.outputs.version }}
           commit-message: "chore: update yt-dlp to ${{ steps.latest.outputs.version }}"
           labels: dependencies
+      # ✅ Log when nothing happens
+      - name: No update needed
+        if: steps.compare.outputs.update == 'false'
+        run: echo "✔ Already up to date"
