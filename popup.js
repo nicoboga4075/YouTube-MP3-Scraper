@@ -209,7 +209,7 @@ async function runScraper() {
             window.scraperResults = results[0].result;
             const urls = window.scraperResults.map(result => result.url);
             outputTerminal.value = urls.join("\n");
-            statusTerminal.textContent = `Status: ${urls.length} video${urls.length === 1 ? '' : 's'} found`;;
+            statusTerminal.textContent = `Status: ${urls.length} video${urls.length === 1 ? '' : 's'} found`;
             saveBtn.disabled = false;
         });
     } catch (err) {

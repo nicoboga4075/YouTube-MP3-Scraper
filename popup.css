@@ -119,6 +119,13 @@ body {
 	margin-bottom: 8px;
 }
 
+.btn-frame {
+	display:flex;
+	flex-direction:column;
+	align-items:flex-start;
+	gap:1px;
+}
+
 button.action-btn {
 	flex: 1;
 	background: var(--bg-deep);
