@@ -11,7 +11,9 @@
     "terser": "^5.39.0"
   },
   "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "test": "echo \"No tests defined\"",
-	"build": "terser background.js -o dist/background.js -c -m && terser popup.js -o dist/popup.js -c -m"
+    "uglify:js": "powershell -Command \"Get-ChildItem *.js | ForEach-Object { terser $_.Name --compress --mangle --output ('dist\\' + $_.Name) }\"",
+    "build": "npm run clean && npm run uglify:js"
   }
 }
