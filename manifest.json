@@ -7,7 +7,7 @@
   "permissions": ["activeTab", "scripting", "nativeMessaging"],
   "host_permissions": ["https://www.youtube.com/*"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "dist/background.js"
   },
   "action": {
     "default_popup": "popup.html",
