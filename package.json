@@ -13,7 +13,7 @@
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "test": "echo \"No tests defined\"",
-    "uglify:js": "powershell -Command \"Get-ChildItem *.js | ForEach-Object { terser $_.Name --compress --mangle --output ('dist\\' + $_.Name) }\"",
+    "uglify:js": "node -e \"const fs=require('fs'); const {execSync}=require('child_process'); fs.mkdirSync('dist',{recursive:true}); fs.readdirSync('.').filter(f=>f.endsWith('.js')).forEach(f=>execSync('terser '+f+' --compress --mangle --output dist/'+f,{stdio:'inherit'}));\"",
     "build": "npm run clean && npm run uglify:js"
   }
 }
