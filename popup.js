@@ -194,10 +194,10 @@ async function runScraper() {
                     }
                 });
             }
-        }, (results) => {
+        }, ([{ result: results }]) => {
             scanBtn.disabled = false;
             installBtn.disabled = false;
-            if (!results || !results[0] || !results[0].result) {
+            if (!results?.length) {
                 if (chrome.runtime.lastError) {
                     outputTerminal.value = "> " + cleanMessage(chrome.runtime.lastError.message) + "\n";
                 } else {
@@ -206,7 +206,7 @@ async function runScraper() {
                 statusTerminal.textContent = `Status: Error`;
                 return;
             }
-            window.scraperResults = results[0].result;
+            window.scraperResults = results;
             const urls = window.scraperResults.map(result => result.url);
             outputTerminal.value = urls.join("\n");
             statusTerminal.textContent = `Status: ${urls.length} video${urls.length === 1 ? '' : 's'} found`;
