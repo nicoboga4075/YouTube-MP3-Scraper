@@ -1,3 +1,5 @@
+let downloadHadError = false;
+
 const bgPort = chrome.runtime.connect({
     name: "popup"
 });
@@ -14,8 +16,9 @@ bgPort.onMessage.addListener((msg) => {
             statusTerminal.textContent = `Status: Error`;
             hideProgress();
         } else {
-            statusTerminal.textContent = progressPercent.textContent === "100%" ? `Status: Success` : `Status: Error`;
+            statusTerminal.textContent = downloadHadError ? `Status: Completed with errors` : `Status: Success`;
         }
+        downloadHadError = false;
         scanBtn.disabled = false;
         installBtn.disabled = false;
         return;
@@ -42,6 +45,7 @@ bgPort.onMessage.addListener((msg) => {
         return;
     }
     if (msg.type === "DOWNLOAD_ERROR") {
+        downloadHadError = true;
         showProgress(`❌ ${msg.title}`, msg.videoIndex, msg.totalUrls);
         outputTerminal.value += `> ❌ ${msg.title}\n> ${msg.reason}\n`;
         outputTerminal.scrollTop = outputTerminal.scrollHeight;
