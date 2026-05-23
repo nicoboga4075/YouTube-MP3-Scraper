@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const version = process.argv[2];
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -28,9 +28,8 @@ console.log(`popup.html updated -> v${version} / ${releaseDate}`);
 // Update CHANGELOG.md
 const changelogPath = path.join(__dirname, 'CHANGELOG.md');
 let changelog = fs.readFileSync(changelogPath, 'utf8');
-changelog = changelog.replace(
-  new RegExp(`(#### v${version.replace(/\./g, '\\.')}\\r\\n\\r\\n> )[^\\r\\n]*`),
-  `$1${releaseDate}`
-);
+const escapedVersion = version.replaceAll('.', String.raw`\.`);
+const regex = new RegExp(String.raw`(#### v${escapedVersion}\r\n\r\n> )[^\r\n]*`);
+changelog = changelog.replace(regex,`$1${releaseDate}`);
 fs.writeFileSync(changelogPath, changelog);
 console.log(`CHANGELOG.md updated -> v${version} / ${releaseDate}`);

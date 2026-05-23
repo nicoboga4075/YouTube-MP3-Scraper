@@ -1,6 +1,6 @@
-const https = require("https");
-const fs = require("fs");
-const path = require("path");
+const https = require("node:https");
+const fs = require("node:fs");
+const path = require("node:path");
 const logFile = "C:\\yt-dlp\\host.log";
 const tools = { 
     "yt-dlp": {"path": "C:\\yt-dlp\\yt-dlp.exe", "url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"},
@@ -36,15 +36,15 @@ function cleanMessage(message) {
 
 log("Host started");
 
-const { execSync, execFile } = require("child_process");
-if (!require("fs").existsSync("node_modules")) {
+const { execSync, execFile } = require("node:child_process");
+if (!require("node:fs").existsSync("node_modules")) {
     log("Installing dependencies...");
     execSync("npm install --no-audit --no-fund", {
         stdio: "ignore"
     });
 }
-const unzipper = require("unzipper");
-const util = require("util");
+const unzipper = require("node:unzipper");
+const util = require("node:util");
 const execAsync = util.promisify(execFile);
 
 function sendResponse(obj) {
@@ -222,9 +222,7 @@ async function isValidAudio(filePath) {
             }
         );
         const data = JSON.parse(fileInfoStdout);
-        const hasAudio = Array.isArray(data.streams) && data.streams.some(s => s.codec_type === "audio");
-        if (!hasAudio) return false;
-        return true;
+        return Array.isArray(data.streams) && data.streams.some(s => s.codec_type === "audio");
     } catch (err) {
         log("ffprobe validation error: " + cleanMessage(err.message));
         return false;
@@ -307,7 +305,7 @@ process.stdin.on("data", async (chunk) => {
                         processedCount++;
                         const json = JSON.parse(urlInfoStdout);
                         log(json);
-                        const urlTitle = json.title.replace(/[\/\\:*?"<>|]/g, "_");
+                        const urlTitle = json.title.replace(/[\\:*?"<>|/]/g, "_");
                         const urlDuration = formatTime(json.duration);
                         if (!json.categories?.includes("Music")) {
                             const matchRegexMusic = /\b(officiel|official|audio|clip|lyrics|visualizer)\b/i.test(json.title)
@@ -346,9 +344,9 @@ process.stdin.on("data", async (chunk) => {
                             totalUrls,
                             title: urlTitle
                         });
-                        const urlArtist = (json.artist || json.uploader || "Unknown").replace(/[\/\\:*?"<>|]/g, "_");
-                        const urlAlbum = (json.album || json.playlist_title || "Unknown").replace(/[\/\\:*?"<>|]/g, "_");
-                        const urlGenre = (json.genre || "Unknown").replace(/[\/\\:*?"<>|]/g, "_");
+                        const urlArtist = (json.artist || json.uploader || "Unknown").replace(/[\\:*?"<>|]/g, "_");
+                        const urlAlbum = (json.album || json.playlist_title || "Unknown").replace(/[\\:*?"<>|]/g, "_");
+                        const urlGenre = (json.genre || "Unknown").replace(/[\\:*?"<>|]/g, "_");
                         const { stdout: downloadStdout } = await execAsync(ytDlpPath,
                             [
                                 "--cookies-from-browser", "firefox",
