@@ -8,12 +8,22 @@
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
-    "terser": "^5.39.0"
+    "terser": "^5.39.0",
+    "auto-changelog": "^2.5.1"
+  },
+  "auto-changelog": {
+    "commitLimit": false,
+    "backfillLimit": false,
+    "sortCommits": "date",
+    "template": "changelog.hbs",
+    "ignoreCommitPattern": "^Release v"
   },
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "test": "echo \"No tests defined\"",
+    "changelog": "auto-changelog",
     "uglify:js": "node -e \"const fs=require('fs'); const {execSync}=require('child_process'); fs.mkdirSync('dist',{recursive:true}); fs.readdirSync('.').filter(f=>f.endsWith('.js')).forEach(f=>execSync('terser '+f+' --compress --mangle --output dist/'+f,{stdio:'inherit'}));\"",
-    "build": "npm run clean && npm run uglify:js"
+    "build": "npm run clean && npm run uglify:js",
+	"release": "bash -c \"level=${1:-patch}; if [[ $level == '-h' || $level == '--help' ]]; then echo 'Usage : npm run release -- [patch|minor|major|x.y.z]'; echo 'Exemples :'; echo '  npm run release -> patch (defaut)'; echo '  npm run release -- minor'; echo '  npm run release -- major'; echo '  npm run release -- 2.1.0'; exit 0; fi; if [[ ! $level =~ ^(patch|minor|major|[0-9]+\\.[0-9]+\\.[0-9]+)$ ]]; then echo 'Invalid level: '$level; echo ''; echo 'Usage : npm run release -- [patch|minor|major|x.y.z]'; echo 'Exemples :'; echo '  npm run release -> patch (defaut)'; echo '  npm run release -- minor'; echo '  npm run release -- major'; echo '  npm run release -- 1.0.0'; exit 1; fi; npm version $level --no-git-tag-version > /dev/null; version=$(node -p \\\"require('./package.json').version\\\"); if git tag | grep -q \\\"^v$version$\\\"; then echo 'Tag v'$version' already exists, deleting and recreating...'; git tag -d v$version; git push origin :refs/tags/v$version; fi; git tag v$version; npm run changelog; node update-version.js \\\"$version\\\" || exit 1; git tag -d v$version; git add package.json package-lock.json CHANGELOG.md changelog.hbs popup.html update-version.js .github/workflows/node.js.yml; git commit -m 'Release v'$version; git tag v$version; git push && git push --tags; echo 'Released v'$version\" --"
   }
 }
