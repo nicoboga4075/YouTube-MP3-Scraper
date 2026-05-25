@@ -43,7 +43,7 @@ if (!require("node:fs").existsSync("node_modules")) {
         stdio: "ignore"
     });
 }
-const unzipper = require("node:unzipper");
+const unzipper = require("unzipper");
 const util = require("node:util");
 const execAsync = util.promisify(execFile);
 
