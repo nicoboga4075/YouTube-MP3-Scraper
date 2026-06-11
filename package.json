@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "terser": "^5.48.0",
-    "auto-changelog": "^2.5.1"
+    "auto-changelog": "^2.6.0"
   },
   "auto-changelog": {
     "commitLimit": false,
