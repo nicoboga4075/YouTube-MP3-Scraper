@@ -5,7 +5,7 @@
   "license": "ISC",
   "ytdlpVersion": "2026.06.09",
   "dependencies": {
-    "unzipper": "^0.12.3"
+    "unzipper": "^0.12.5"
   },
   "devDependencies": {
     "terser": "^5.48.0",
