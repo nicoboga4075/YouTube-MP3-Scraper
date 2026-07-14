@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "author": "Nicolas BOGALHEIRO",
   "license": "ISC",
-  "ytdlpVersion": "2026.06.09",
+  "ytdlpVersion": "2026.07.04",
   "dependencies": {
     "unzipper": "^0.12.5"
   },
