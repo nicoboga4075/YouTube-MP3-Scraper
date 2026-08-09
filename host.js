@@ -246,6 +246,17 @@ function readFramedMessage(buffer) {
     };
 }
 
+function isMusicFile(json) {
+    if (json.categories?.includes("Music")) {
+        return true;
+    }
+    const matchRegexMusic = /\b(officiel|official|audio|clip|lyrics|visualizer)\b/i.test(json.title)
+        || /\b(vevo)\b/i.test(json.channel ?? "")
+        || /\b(pop|rock|rap|rnb|hip.?hop)\b/i.test((json.tags ?? []).join(" "))
+        || /\b(pop|rock|rap|rnb|hip.?hop)\b/i.test(json.description ?? "");
+    return !(json.categories?.includes("Education") || !matchRegexMusic || json.duration >= 600); // 600s = 10min, unlikely to be a single song beyond that
+}
+
 function resolveUrls(msg) {
     if (msg.urls) {
         log("Using URLs from popup terminal");
@@ -328,22 +339,16 @@ process.stdin.on("data", async (chunk) => {
                         log(json);
                         const urlTitle = json.title.replace(/[\\:*?"<>|/]/g, "_");
                         const urlDuration = formatTime(json.duration);
-                        if (!json.categories?.includes("Music")) {
-                            const matchRegexMusic = /\b(officiel|official|audio|clip|lyrics|visualizer)\b/i.test(json.title)
-                            || /\b(vevo)\b/i.test(json.channel ?? "")
-                            || /\b(pop|rock|rap|rnb|hip.?hop)\b/i.test((json.tags ?? []).join(" "))
-                            || /\b(pop|rock|rap|rnb|hip.?hop)\b/i.test(json.description ?? "");
-                            if (json.categories?.includes("Education") || !matchRegexMusic || json.duration >= 600) {
-                                log(`Skipped (not music): ${urlTitle} | ${urlDuration}`);
-                                sendResponse({
-                                    type: "DOWNLOAD_SKIPPED",
-                                    videoIndex,
-                                    totalUrls,
-                                    title: urlTitle,
-                                    reason: "not music"
-                                });
-                                continue;
-                            }
+                        if (!isMusicFile(json)) {
+                            log(`Skipped (not music): ${urlTitle} | ${urlDuration}`);
+                            sendResponse({
+                                type: "DOWNLOAD_SKIPPED",
+                                videoIndex,
+                                totalUrls,
+                                title: urlTitle,
+                                reason: "not music"
+                            });
+                            continue;
                         }
                         musicCount++;
                         log(`Downloading music: ${urlTitle} | ${urlDuration}`);
