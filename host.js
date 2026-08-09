@@ -356,6 +356,121 @@ function resolveUrls(msg) {
     return urls;
 }
 
+async function processUrl(url, videoIndex, totalUrls, ytDlpPath, ffmpegPath) {
+    const startTime = Date.now();
+    let infoFetched = false;
+    let isMusic = false;
+    try {
+        const urlInfoStdout = await fetchUrlInfo(ytDlpPath, url);
+        infoFetched = true;
+        const json = JSON.parse(urlInfoStdout);
+        log(json);
+        const urlTitle = json.title.replace(/[\\:*?"<>|/]/g, "_");
+        const urlDuration = formatTime(json.duration);
+        if (!isMusicFile(json)) {
+            log(`Skipped (not music): ${urlTitle} | ${urlDuration}`);
+            sendResponse({
+                type: "DOWNLOAD_SKIPPED",
+                videoIndex,
+                totalUrls,
+                title: urlTitle,
+                reason: "not music"
+            });
+            return { processed: true, isMusic: false, fatal: false };
+        }
+        isMusic = true;
+        log(`Downloading music: ${urlTitle} | ${urlDuration}`);
+        const expectedPath = path.join(urlsDownloadFolder, `${urlTitle}.mp3`);
+        if (fs.existsSync(expectedPath)) {
+            log("Skipped (already exists)");
+            sendResponse({
+                type: "DOWNLOAD_SKIPPED",
+                videoIndex,
+                totalUrls,
+                title: urlTitle,
+                reason: "already exists"
+            });
+            return { processed: true, isMusic: true, fatal: false };
+        }
+        sendResponse({
+            type: "DOWNLOAD_START",
+            videoIndex,
+            totalUrls,
+            title: urlTitle
+        });
+        const urlArtist = (json.artist || json.uploader || "Unknown").replace(/[\\:*?"<>|]/g, "_");
+        const urlAlbum = (json.album || json.playlist_title || "Unknown").replace(/[\\:*?"<>|]/g, "_");
+        const urlGenre = (json.genre || "Unknown").replace(/[\\:*?"<>|]/g, "_");
+        const downloadStdout = await downloadAudio(ytDlpPath, ffmpegPath, url, urlTitle, urlArtist, urlAlbum, urlGenre);
+        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+        log(`Download completed in ${formatTime(elapsedSeconds)}`);
+        const filePath = downloadStdout.trim().split("\n").pop();
+        if (!fs.existsSync(filePath)) {
+            log("Audio file was not created, download failed or skipped");
+            sendResponse({
+                type: "DOWNLOAD_SKIPPED",
+                videoIndex,
+                totalUrls,
+                title: urlTitle,
+                reason: "file not created"
+            });
+            return { processed: true, isMusic: true, fatal: false };
+        }
+        const valid = await isValidAudio(filePath);
+        if (!valid) {
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+            log("Invalid audio file, deleting...");
+            sendResponse({
+                type: "DOWNLOAD_SKIPPED",
+                videoIndex,
+                totalUrls,
+                title: urlTitle,
+                reason: "invalid audio"
+            });
+            return { processed: true, isMusic: true, fatal: false };
+        }
+        log(`File path -> ${filePath}`);
+        log(`Metadata -> Title: ${urlTitle}, Artist: ${urlArtist}, Album: ${urlAlbum}, Genre: ${urlGenre}`);
+        const stats = fs.statSync(filePath);
+        log(`File size: ${formatBytes(stats.size)}`);
+        sendResponse({
+            type: "DOWNLOAD_DONE",
+            videoIndex,
+            totalUrls,
+            title: urlTitle
+        });
+        return { processed: true, isMusic: true, fatal: false };
+    } catch (err) {
+        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+        const errorMessage = cleanMessage(err.message);
+        log(`Error processing URL ${url} after ${formatTime(elapsedSeconds)}: ${errorMessage}`);
+        if (isNonFatalError(errorMessage)) {
+            log("Skipped (non‑fatal error)");
+            sendResponse({
+                type: "DOWNLOAD_ERROR",
+                videoIndex,
+                totalUrls,
+                title: url,
+                fatal: false,
+                reason: errorMessage
+            });
+            return { processed: infoFetched, isMusic, fatal: false };
+        }
+        log("Fatal error");
+        sendResponse({
+            type: "DOWNLOAD_ERROR",
+            videoIndex,
+            totalUrls,
+            title: url,
+            fatal: true,
+            reason: errorMessage
+        });
+        return { processed: infoFetched, isMusic, fatal: true };
+    }
+}
+
 let buffer = Buffer.alloc(0);
 process.stdin.on("data", async (chunk) => {
     buffer = Buffer.concat([buffer, chunk]);
@@ -389,117 +504,15 @@ process.stdin.on("data", async (chunk) => {
                     const url = urls[i];
                     log(`========== URL ${videoIndex}/${totalUrls} ==========`);
                     log(url);
-                    const startTime = Date.now();
-                    try {
-                        const urlInfoStdout = await fetchUrlInfo(ytDlpPath, url);
-                        processedCount++;
-                        const json = JSON.parse(urlInfoStdout);
-                        log(json);
-                        const urlTitle = json.title.replace(/[\\:*?"<>|/]/g, "_");
-                        const urlDuration = formatTime(json.duration);
-                        if (!isMusicFile(json)) {
-                            log(`Skipped (not music): ${urlTitle} | ${urlDuration}`);
-                            sendResponse({
-                                type: "DOWNLOAD_SKIPPED",
-                                videoIndex,
-                                totalUrls,
-                                title: urlTitle,
-                                reason: "not music"
-                            });
-                            continue;
-                        }
-                        musicCount++;
-                        log(`Downloading music: ${urlTitle} | ${urlDuration}`);
-                        const expectedPath = path.join(urlsDownloadFolder, `${urlTitle}.mp3`);
-                        if (fs.existsSync(expectedPath)) {
-                            log("Skipped (already exists)");
-                            sendResponse({
-                                type: "DOWNLOAD_SKIPPED",
-                                videoIndex,
-                                totalUrls,
-                                title: urlTitle,
-                                reason: "already exists"
-                            });
-                            continue;
-                        }
-                        sendResponse({
-                            type: "DOWNLOAD_START",
-                            videoIndex,
-                            totalUrls,
-                            title: urlTitle
-                        });
-                        const urlArtist = (json.artist || json.uploader || "Unknown").replace(/[\\:*?"<>|]/g, "_");
-                        const urlAlbum = (json.album || json.playlist_title || "Unknown").replace(/[\\:*?"<>|]/g, "_");
-                        const urlGenre = (json.genre || "Unknown").replace(/[\\:*?"<>|]/g, "_");
-                        const downloadStdout = await downloadAudio(ytDlpPath, ffmpegPath, url, urlTitle, urlArtist, urlAlbum, urlGenre);
-                        const endTime = Date.now();
-                        const elapsedSeconds = Math.floor((endTime - startTime) / 1000);
-                        log(`Download completed in ${formatTime(elapsedSeconds)}`);
-                        const filePath = downloadStdout.trim().split("\n").pop();
-                        if (!fs.existsSync(filePath)) {
-                            log("Audio file was not created, download failed or skipped");
-                            sendResponse({
-                                type: "DOWNLOAD_SKIPPED",
-                                videoIndex,
-                                totalUrls,
-                                title: urlTitle,
-                                reason: "file not created"
-                            });
-                            continue;
-                        }
-                        const valid = await isValidAudio(filePath);
-                        if (!valid) {
-                            if (fs.existsSync(filePath)) {
-                                fs.unlinkSync(filePath);
-                            }
-                            log("Invalid audio file, deleting...");
-                            sendResponse({
-                                type: "DOWNLOAD_SKIPPED",
-                                videoIndex,
-                                totalUrls,
-                                title: urlTitle,
-                                reason: "invalid audio"
-                            });
-                            continue;
-                        }
-                        log(`File path -> ${filePath}`);
-                        log(`Metadata -> Title: ${urlTitle}, Artist: ${urlArtist}, Album: ${urlAlbum}, Genre: ${urlGenre}`);
-                        const stats = fs.statSync(filePath);
-                        log(`File size: ${formatBytes(stats.size)}`);
-                        sendResponse({
-                            type: "DOWNLOAD_DONE",
-                            videoIndex,
-                            totalUrls,
-                            title: urlTitle
-                        });
-
-                    } catch (err) {
-                        const endTime = Date.now();
-                        const elapsedSeconds = Math.floor((endTime - startTime) / 1000);
-                        const errorMessage = cleanMessage(err.message);
-                        log(`Error processing URL ${url} after ${formatTime(elapsedSeconds)}: ${errorMessage}`);
-                        if (isNonFatalError(errorMessage)) {
-                            log("Skipped (non‑fatal error)");
-                            sendResponse({
-                                type: "DOWNLOAD_ERROR",
-                                videoIndex,
-                                totalUrls,
-                                title: url,
-                                fatal: false,
-                                reason: errorMessage
-                            });
-                            continue;
-                        }
-                        log("Fatal error");
-                        sendResponse({
-                            type: "DOWNLOAD_ERROR",
-                            videoIndex,
-                            totalUrls,
-                            title: url,
-                            fatal: true,
-                            reason: errorMessage
-                        });
+                    const result = await processUrl(url, videoIndex, totalUrls, ytDlpPath, ffmpegPath);
+                    if (result.fatal) {
                         return;
+                    }
+                    if (result.processed) {
+                        processedCount++;
+                    }
+                    if (result.isMusic) {
+                        musicCount++;
                     }
                 }
                 const endTimeGlobal = Date.now();
