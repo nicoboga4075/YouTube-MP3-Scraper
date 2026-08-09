@@ -246,6 +246,44 @@ function readFramedMessage(buffer) {
     };
 }
 
+async function downloadAudio(ytDlpPath, ffmpegPath, url, urlTitle, urlArtist, urlAlbum, urlGenre) {
+    const { stdout } = await execAsync(ytDlpPath,
+        [
+            "--cookies-from-browser", "firefox",
+            "--ffmpeg-location", ffmpegPath,
+            "--no-playlist",
+            "--encoding", "utf-8",
+            "--js-runtimes", "node",
+            "--extractor-args", "youtube:player_client=android,web",
+            "--concurrent-fragments", "5",
+            "--throttled-rate", "100K",
+            "--format", "bv*+ba/b",
+            "-x",
+            "--audio-format", "mp3",
+            "--audio-quality", "0",
+            "--parse-metadata", `:(?P<title>${urlTitle})`,
+            "--parse-metadata", `:(?P<artist>${urlArtist})`,
+            "--parse-metadata", `:(?P<album>${urlAlbum})`,
+            "--parse-metadata", `:(?P<genre>${urlGenre})`,
+            "--embed-metadata",
+            "--print", "after_move:filepath",
+            "--retries", "3",
+            "--fragment-retries", "3",
+            "--retry-sleep", "3",
+            "--windows-filenames",
+            "--no-progress",
+            "--newline",
+            "-o", path.join(urlsDownloadFolder, `${urlTitle}.%(ext)s`),
+            url
+        ],
+        {
+            encoding: "utf8",
+            maxBuffer: 1024 * 1024 * 50
+        }
+    );
+    return stdout;
+}
+
 async function fetchUrlInfo(ytDlpPath, url) {
     const { stdout } = await execAsync(ytDlpPath,
         [
@@ -393,40 +431,7 @@ process.stdin.on("data", async (chunk) => {
                         const urlArtist = (json.artist || json.uploader || "Unknown").replace(/[\\:*?"<>|]/g, "_");
                         const urlAlbum = (json.album || json.playlist_title || "Unknown").replace(/[\\:*?"<>|]/g, "_");
                         const urlGenre = (json.genre || "Unknown").replace(/[\\:*?"<>|]/g, "_");
-                        const { stdout: downloadStdout } = await execAsync(ytDlpPath,
-                            [
-                                "--cookies-from-browser", "firefox",
-                                "--ffmpeg-location", ffmpegPath,
-                                "--no-playlist",
-                                "--encoding", "utf-8",
-                                "--js-runtimes", "node",
-                                "--extractor-args", "youtube:player_client=android,web",
-                                "--concurrent-fragments", "5",
-                                "--throttled-rate", "100K",
-                                "--format", "bv*+ba/b",
-                                "-x",
-                                "--audio-format", "mp3",
-                                "--audio-quality", "0",
-                                "--parse-metadata", `:(?P<title>${urlTitle})`,
-                                "--parse-metadata", `:(?P<artist>${urlArtist})`,
-                                "--parse-metadata", `:(?P<album>${urlAlbum})`,
-                                "--parse-metadata", `:(?P<genre>${urlGenre})`,
-                                "--embed-metadata",
-                                "--print", "after_move:filepath",
-                                "--retries", "3",
-                                "--fragment-retries", "3",
-                                "--retry-sleep", "3",
-                                "--windows-filenames",
-                                "--no-progress",
-                                "--newline",
-                                "-o", path.join(urlsDownloadFolder, `${urlTitle}.%(ext)s`),
-                                url
-                            ], 
-                            {
-                                encoding: "utf8",
-                                maxBuffer: 1024 * 1024 * 50
-                            }
-                        );
+                        const downloadStdout = await downloadAudio(ytDlpPath, ffmpegPath, url, urlTitle, urlArtist, urlAlbum, urlGenre);
                         const endTime = Date.now();
                         const elapsedSeconds = Math.floor((endTime - startTime) / 1000);
                         log(`Download completed in ${formatTime(elapsedSeconds)}`);
