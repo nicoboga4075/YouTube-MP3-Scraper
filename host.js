@@ -246,6 +246,24 @@ function readFramedMessage(buffer) {
     };
 }
 
+async function fetchUrlInfo(ytDlpPath, url) {
+    const { stdout } = await execAsync(ytDlpPath,
+        [
+            "--cookies-from-browser", "firefox",
+            "--dump-json",
+            "--no-playlist",
+            "--encoding", "utf-8",
+            "--js-runtimes", "node",
+            "--extractor-args", "youtube:player_client=android,web",
+            url
+        ],
+        {
+            encoding: "utf8"
+        }
+    );
+    return stdout;
+}
+
 function isNonFatalError(errorMessage) {
     const NON_FATAL_ERROR_PATTERNS = [
         "Sign in to confirm",
@@ -335,20 +353,7 @@ process.stdin.on("data", async (chunk) => {
                     log(url);
                     const startTime = Date.now();
                     try {
-                        const { stdout: urlInfoStdout } = await execAsync(ytDlpPath,
-                            [
-                                "--cookies-from-browser", "firefox",
-                                "--dump-json",
-                                "--no-playlist",
-                                "--encoding", "utf-8",
-                                "--js-runtimes", "node",
-                                "--extractor-args", "youtube:player_client=android,web",
-                                url
-                            ], 
-                            {
-                                encoding: "utf8"
-                            }
-                        );
+                        const urlInfoStdout = await fetchUrlInfo(ytDlpPath, url);
                         processedCount++;
                         const json = JSON.parse(urlInfoStdout);
                         log(json);
