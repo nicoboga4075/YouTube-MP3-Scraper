@@ -232,15 +232,27 @@ async function isValidAudio(filePath) {
     }
 }
 
+function readFramedMessage(buffer) {
+    if (buffer.length < 4) {
+        return null;
+    }
+    const msgLength = buffer.readUInt32LE(0);
+    if (buffer.length < 4 + msgLength) {
+        return null;
+    }
+    return {
+        msgText: buffer.slice(4, 4 + msgLength).toString("utf8"),
+        rest: buffer.slice(4 + msgLength)
+    };
+}
+
 let buffer = Buffer.alloc(0);
 process.stdin.on("data", async (chunk) => {
     buffer = Buffer.concat([buffer, chunk]);
-    while (buffer.length >= 4) {
-        const msgLength = buffer.readUInt32LE(0);
-        if (buffer.length < 4 + msgLength) break;
-        const msgBuffer = buffer.slice(4, 4 + msgLength);
-        const msgText = msgBuffer.toString("utf8");
-        buffer = buffer.slice(4 + msgLength);
+    let frame;
+    while ((frame = readFramedMessage(buffer))) {
+        const msgText = frame.msgText;
+        buffer = frame.rest;
         try {
             const msg = JSON.parse(msgText);
             log("Message: " + JSON.stringify(msg));
