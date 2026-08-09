@@ -84,17 +84,6 @@ function extractToolFromZip(tempFile, toolPath, toolName, callback) {
         .on("error", err => callback(err));
 }
 
-function finalizeDownload(tempFile, toolPath, toolName, isZip, callback) {
-    log("Download finished: " + tempFile);
-    if (!isZip) {
-        sendResponse({
-            message: `${toolName} successfully installed`
-        });
-        return callback(null);
-    }
-    extractToolFromZip(tempFile, toolPath, toolName, callback);
-}
-
 function downloadToFile(url, tempFile, toolPath, toolName, isZip, callback) {
     https.get(url, res => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
@@ -113,7 +102,16 @@ function downloadToFile(url, tempFile, toolPath, toolName, isZip, callback) {
         }
         res.pipe(file);
         file.on("finish", () => {
-            file.close(() => finalizeDownload(tempFile, toolPath, toolName, isZip, callback));
+            file.close(() => {
+                log("Download finished: " + tempFile);
+                if (!isZip) {
+                    sendResponse({
+                        message: `${toolName} successfully installed`
+                    });
+                    return callback(null);
+                }
+                extractToolFromZip(tempFile, toolPath, toolName, callback);
+            });
         });
         file.on("error", err => {
             log("File stream error: " + cleanMessage(err.message));
