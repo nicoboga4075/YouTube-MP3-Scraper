@@ -471,6 +471,50 @@ async function processUrl(url, videoIndex, totalUrls, ytDlpPath, ffmpegPath) {
     }
 }
 
+async function handleInstallCommand(msg) {
+    await installAllTools();
+    if (!fs.existsSync(urlsDownloadFolder)) {
+        fs.mkdirSync(urlsDownloadFolder, {
+            recursive: true
+        });
+    }
+    const urls = resolveUrls(msg);
+    if (!urls) {
+        return false;
+    }
+    const ytDlpPath = tools["yt-dlp"].path;
+    const ffmpegPath = tools["ffmpeg"].path;
+    const totalUrls = urls.length;
+    log(`Total URLs to process: ${totalUrls}`);
+    const startTimeGlobal = Date.now();
+    let processedCount = 0;
+    let musicCount = 0;
+    for (let i = 0; i < urls.length; i++) {
+        const videoIndex = i + 1;
+        const url = urls[i];
+        log(`========== URL ${videoIndex}/${totalUrls} ==========`);
+        log(url);
+        const result = await processUrl(url, videoIndex, totalUrls, ytDlpPath, ffmpegPath);
+        if (result.fatal) {
+            return false;
+        }
+        if (result.processed) {
+            processedCount++;
+        }
+        if (result.isMusic) {
+            musicCount++;
+        }
+    }
+    const elapsedSecondsGlobal = Math.floor((Date.now() - startTimeGlobal) / 1000);
+    log(`URL processing for ${processedCount}/${totalUrls} videos finished after ${formatTime(elapsedSecondsGlobal)}`);
+    log(`Repartition: ${musicCount} videos classified as Music and ${processedCount - musicCount} as Other`);
+    sendResponse({
+        type: "NATIVE_DISCONNECT",
+        error: null
+    });
+    return true;
+}
+
 let buffer = Buffer.alloc(0);
 process.stdin.on("data", async (chunk) => {
     buffer = Buffer.concat([buffer, chunk]);
@@ -482,47 +526,9 @@ process.stdin.on("data", async (chunk) => {
             const msg = JSON.parse(msgText);
             log("Message: " + JSON.stringify(msg));
             if (msg.command === "install") {
-                await installAllTools();
-                if (!fs.existsSync(urlsDownloadFolder)) {
-                    fs.mkdirSync(urlsDownloadFolder, {
-                        recursive: true
-                    });
-                }
-                const urls = resolveUrls(msg);
-                if (!urls) {
+                if (!(await handleInstallCommand(msg))) {
                     return;
                 }
-                const ytDlpPath = tools["yt-dlp"].path;
-                const ffmpegPath = tools["ffmpeg"].path;
-                const totalUrls = urls.length;
-                log(`Total URLs to process: ${totalUrls}`);
-                const startTimeGlobal = Date.now();
-                let processedCount = 0;
-                let musicCount = 0;
-                for (let i = 0; i < urls.length; i++) {
-                    const videoIndex = i + 1;
-                    const url = urls[i];
-                    log(`========== URL ${videoIndex}/${totalUrls} ==========`);
-                    log(url);
-                    const result = await processUrl(url, videoIndex, totalUrls, ytDlpPath, ffmpegPath);
-                    if (result.fatal) {
-                        return;
-                    }
-                    if (result.processed) {
-                        processedCount++;
-                    }
-                    if (result.isMusic) {
-                        musicCount++;
-                    }
-                }
-                const endTimeGlobal = Date.now();
-                const elapsedSecondsGlobal = Math.floor((endTimeGlobal - startTimeGlobal) / 1000);
-                log(`URL processing for ${processedCount}/${totalUrls} videos finished after ${formatTime(elapsedSecondsGlobal)}`);
-                log(`Repartition: ${musicCount} videos classified as Music and ${processedCount - musicCount} as Other`);
-                sendResponse({
-                    type: "NATIVE_DISCONNECT",
-                    error: null
-                });
             } else {
                 log("Unknown command received");
                 sendResponse({
