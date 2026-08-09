@@ -4,70 +4,83 @@ const bgPort = chrome.runtime.connect({
     name: "popup"
 });
 
+function handleGenericMessage(msg) {
+    outputTerminal.value += "> " + cleanMessage(msg.message) + "\n";
+    outputTerminal.scrollTop = outputTerminal.scrollHeight;
+}
+
+function handleHandcheckOk() {
+    outputTerminal.value = "> Waiting for you.\n";
+    statusTerminal.textContent = `Status: Idle`;
+}
+
+function handleNativeDisconnect(msg) {
+    if (msg.error) {
+        outputTerminal.value += "> " + cleanMessage(msg.error) + "\n";
+        statusTerminal.textContent = `Status: Error`;
+        hideProgress();
+    } else {
+        statusTerminal.textContent = downloadHadError ? `Status: Completed with errors` : `Status: Success`;
+    }
+    downloadHadError = false;
+    scanBtn.disabled = false;
+    installBtn.disabled = false;
+}
+
+function handleDownloadEvent(msg) {
+    switch (msg.type) {
+        case "DOWNLOAD_START": {
+            const percent = Math.round((msg.videoIndex - 1) / msg.totalUrls * 100);
+            showProgress(`⬇ ${msg.title}`, percent, `${msg.videoIndex}/${msg.totalUrls}`);
+            outputTerminal.value += `> ⬇ ${msg.title}\n`;
+            break;
+        }
+        case "DOWNLOAD_DONE": {
+            const { videoIndex, totalUrls, title } = msg;
+            showProgress(`[${videoIndex}/${totalUrls}] ${title}`, 100, "Done ✓");
+            outputTerminal.value += `> ✓ ${title}\n`;
+            break;
+        }
+        case "DOWNLOAD_SKIPPED": {
+            const percent = Math.round(msg.videoIndex / msg.totalUrls * 100);
+            showProgress(`⏭ ${msg.title}`, percent, `${msg.videoIndex}/${msg.totalUrls}`);
+            outputTerminal.value += `> ⏭ ${msg.title} (${msg.reason})\n`;
+            break;
+        }
+        case "DOWNLOAD_ERROR": {
+            downloadHadError = true;
+            showProgress(`❌ ${msg.title}`, msg.videoIndex, msg.totalUrls);
+            outputTerminal.value += `> ❌ ${msg.title}\n> ${msg.reason}\n`;
+            if (msg.fatal) {
+                statusTerminal.textContent = `Status: Fatal error — downloads stopped`;
+            }
+            break;
+        }
+    }
+    outputTerminal.scrollTop = outputTerminal.scrollHeight;
+}
+
+function handleAllToolsInstalled() {
+    statusTerminal.textContent = `Status: Tools installation finished`;
+    let lines = outputTerminal.value.split("\n");
+    lines.shift();
+    outputTerminal.value = lines.join("\n") + "\n";
+    showProgress("", 0, "");
+    statusTerminal.textContent = 'Status: ⏳ Downloading MP3...';
+}
+
+function handle(msg) {
+    const value = msg.message ?? msg.type ?? "";
+    const handler = (msg.type?.startsWith("DOWNLOAD_") && handleDownloadEvent)
+        || (value === "HANDCHECK_OK" && handleHandcheckOk)
+        || (value === "ALL_TOOLS_INSTALLED" && handleAllToolsInstalled)
+        || (value === "NATIVE_DISCONNECT" && handleNativeDisconnect)
+        || handleGenericMessage;
+    handler(msg);
+}
+
 bgPort.onMessage.addListener((msg) => {
-    if (msg.message === "HANDCHECK_OK") {
-        outputTerminal.value = "> Waiting for you.\n";
-        statusTerminal.textContent = `Status: Idle`;
-        return;
-    }
-    if (msg.type === "NATIVE_DISCONNECT") {
-        if (msg.error) {
-            outputTerminal.value += "> " + cleanMessage(msg.error) + "\n";
-            statusTerminal.textContent = `Status: Error`;
-            hideProgress();
-        } else {
-            statusTerminal.textContent = downloadHadError ? `Status: Completed with errors` : `Status: Success`;
-        }
-        downloadHadError = false;
-        scanBtn.disabled = false;
-        installBtn.disabled = false;
-        return;
-    }
-    if (msg.type === "DOWNLOAD_START") {
-        const percent = Math.round((msg.videoIndex - 1) / msg.totalUrls * 100);
-        showProgress(`⬇ ${msg.title}`, percent,`${msg.videoIndex}/${msg.totalUrls}`);
-        outputTerminal.value += `> ⬇ ${msg.title}\n`;
-        outputTerminal.scrollTop = outputTerminal.scrollHeight;
-        return;
-    }
-    if (msg.type === "DOWNLOAD_DONE") {
-        const { videoIndex, totalUrls, title } = msg;
-        showProgress(`[${videoIndex}/${totalUrls}] ${title}`, 100, "Done ✓");
-        outputTerminal.value += `> ✓ ${title}\n`;
-        outputTerminal.scrollTop = outputTerminal.scrollHeight;
-        return;
-    }
-    if (msg.type === "DOWNLOAD_SKIPPED") {
-        const percent = Math.round(msg.videoIndex / msg.totalUrls * 100);
-        showProgress(`⏭ ${msg.title}`, percent, `${msg.videoIndex}/${msg.totalUrls}`);
-        outputTerminal.value += `> ⏭ ${msg.title} (${msg.reason})\n`;
-        outputTerminal.scrollTop = outputTerminal.scrollHeight;
-        return;
-    }
-    if (msg.type === "DOWNLOAD_ERROR") {
-        downloadHadError = true;
-        showProgress(`❌ ${msg.title}`, msg.videoIndex, msg.totalUrls);
-        outputTerminal.value += `> ❌ ${msg.title}\n> ${msg.reason}\n`;
-        outputTerminal.scrollTop = outputTerminal.scrollHeight;
-        if (msg.fatal) {
-            statusTerminal.textContent = `Status: Fatal error — downloads stopped`;
-        }
-        return;
-    }
-    if (msg.message === "ALL_TOOLS_INSTALLED") {
-        statusTerminal.textContent = `Status: Tools installation finished`;
-        let lines = outputTerminal.value.split("\n");
-        lines.shift();
-        outputTerminal.value = lines.join("\n");
-        outputTerminal.value += "\n";
-        showProgress("", 0, "");
-        statusTerminal.textContent = 'Status: ⏳ Downloading MP3...';
-        return;
-    }
-    if (msg.message) {
-        outputTerminal.value += "> " + cleanMessage(msg.message) + "\n";
-        outputTerminal.scrollTop = outputTerminal.scrollHeight;
-    }
+    handle(msg);
 });
 
 bgPort.onDisconnect.addListener(() => {
@@ -78,7 +91,7 @@ bgPort.onDisconnect.addListener(() => {
             .then(res => res.text())
             .then(text => {
                 const lines = text.trim().split("\n");
-                const lastRecord = lines[lines.length - 1];
+                const lastRecord = lines.at(-1);
                 if (lastRecord.toLowerCase().includes('node') || lastRecord.includes('fichier de commandes.') || lastRecord.includes('batch file.')) {
                     outputTerminal.value += "> Check if Node.js is installed and well recognized or used on your laptop.\n";
                 }

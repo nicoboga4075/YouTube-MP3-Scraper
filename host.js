@@ -1,15 +1,17 @@
 const https = require("node:https");
 const fs = require("node:fs");
 const path = require("node:path");
-const logFile = "C:\\yt-dlp\\host.log";
-const tools = { 
-    "yt-dlp": {"path": "C:\\yt-dlp\\yt-dlp.exe", "url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"},
-    "ffmpeg": {"path": "C:\\ffmpeg\\bin\\ffmpeg.exe", "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"},
-    "ffplay": {"path": "C:\\ffmpeg\\bin\\ffplay.exe", "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"},
-    "ffprobe": {"path": "C:\\ffmpeg\\bin\\ffprobe.exe", "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"}
+const ytDlpDir = String.raw`C:\yt-dlp`;
+const ffmpegBinDir = String.raw`C:\ffmpeg\bin`;
+const logFile = path.join(ytDlpDir, "host.log");
+const urlsFile = path.join(ytDlpDir, "urls.txt");
+const urlsDownloadFolder = path.join(ytDlpDir, "downloads");
+const tools = {
+    "yt-dlp": {"path": path.join(ytDlpDir, "yt-dlp.exe"), "url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"},
+    "ffmpeg": {"path": path.join(ffmpegBinDir, "ffmpeg.exe"), "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"},
+    "ffplay": {"path": path.join(ffmpegBinDir, "ffplay.exe"), "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"},
+    "ffprobe": {"path": path.join(ffmpegBinDir, "ffprobe.exe"), "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"}
 };
-const urlsFile = "C:\\yt-dlp\\urls.txt";
-const urlsDownloadFolder = "C:\\yt-dlp\\downloads";
 
 function log(msg) {
     try {
@@ -26,6 +28,7 @@ function log(msg) {
             encoding: 'utf8'
         });
     } catch (err) {
+        console.error("log() failed:", err);
         return false;
     }
 }
