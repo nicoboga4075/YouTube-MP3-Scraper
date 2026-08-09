@@ -246,6 +246,21 @@ function readFramedMessage(buffer) {
     };
 }
 
+function isNonFatalError(errorMessage) {
+    const NON_FATAL_ERROR_PATTERNS = [
+        "Sign in to confirm",
+        "Confirm your age",
+        "This video is unavailable",
+        "Video unavailable",
+        "Private video",
+        "Unsupported URL",
+        "No video formats found",
+        "HTTP Error 403",
+        "Requested format is not available"
+    ];
+    return NON_FATAL_ERROR_PATTERNS.some(pattern => errorMessage.includes(pattern));
+}
+
 function isMusicFile(json) {
     if (json.categories?.includes("Music")) {
         return true;
@@ -453,17 +468,7 @@ process.stdin.on("data", async (chunk) => {
                         const elapsedSeconds = Math.floor((endTime - startTime) / 1000);
                         const errorMessage = cleanMessage(err.message);
                         log(`Error processing URL ${url} after ${formatTime(elapsedSeconds)}: ${errorMessage}`);
-                        if (
-                            errorMessage.includes("Sign in to confirm") ||
-                            errorMessage.includes("Confirm your age") ||
-                            errorMessage.includes("This video is unavailable") ||
-                            errorMessage.includes("Video unavailable") ||
-                            errorMessage.includes("Private video") ||
-                            errorMessage.includes("Unsupported URL") ||
-                            errorMessage.includes("No video formats found") ||
-                            errorMessage.includes("HTTP Error 403") ||
-                            errorMessage.includes("Requested format is not available")
-                        ) {
+                        if (isNonFatalError(errorMessage)) {
                             log("Skipped (non‑fatal error)");
                             sendResponse({
                                 type: "DOWNLOAD_ERROR",
