@@ -525,15 +525,15 @@ process.stdin.on("data", async (chunk) => {
         try {
             const msg = JSON.parse(msgText);
             log("Message: " + JSON.stringify(msg));
-            if (msg.command === "install") {
-                if (!(await handleInstallCommand(msg))) {
-                    return;
-                }
-            } else {
+            if (msg.command !== "install") {
                 log("Unknown command received");
                 sendResponse({
                     message: "Unknown command"
                 });
+                continue;
+            }
+            if (!(await handleInstallCommand(msg))) {
+                return;
             }
         } catch (err) {
             log("JSON parse error: " + cleanMessage(err.message));
