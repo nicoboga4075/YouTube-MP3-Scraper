@@ -59,6 +59,72 @@ function sendResponse(obj) {
     log("Response sent: " + json);
 }
 
+function extractToolFromZip(tempFile, toolPath, toolName, callback) {
+    log(`Extracting ${toolName} from zip`);
+    fs.createReadStream(tempFile)
+        .pipe(unzipper.Parse())
+        .on("entry", entry => {
+            const fileName = entry.path;
+            if (fileName.endsWith(path.basename(toolPath))) {
+                entry.pipe(fs.createWriteStream(toolPath));
+            } else {
+                entry.autodrain();
+            }
+        })
+        .on("close", () => {
+            if (fs.existsSync(tempFile)) {
+                fs.unlinkSync(tempFile);
+            }
+            sendResponse({
+                message: `${toolName} successfully installed`
+            });
+            log(`${toolName} extracted to ${toolPath}`);
+            callback(null);
+        })
+        .on("error", err => callback(err));
+}
+
+function finalizeDownload(tempFile, toolPath, toolName, isZip, callback) {
+    log("Download finished: " + tempFile);
+    if (!isZip) {
+        sendResponse({
+            message: `${toolName} successfully installed`
+        });
+        return callback(null);
+    }
+    extractToolFromZip(tempFile, toolPath, toolName, callback);
+}
+
+function downloadToFile(url, tempFile, toolPath, toolName, isZip, callback) {
+    https.get(url, res => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            log(`Redirect ${res.statusCode} -> ${res.headers.location}`);
+            return downloadToFile(res.headers.location, tempFile, toolPath, toolName, isZip, callback);
+        }
+        if (res.statusCode !== 200) {
+            return callback(new Error("Download failed: " + res.statusCode));
+        }
+        let file;
+        try {
+            file = fs.createWriteStream(tempFile);
+        } catch (err) {
+            log("WriteStream error: " + cleanMessage(err.message));
+            return callback(err);
+        }
+        res.pipe(file);
+        file.on("finish", () => {
+            file.close(() => finalizeDownload(tempFile, toolPath, toolName, isZip, callback));
+        });
+        file.on("error", err => {
+            log("File stream error: " + cleanMessage(err.message));
+            callback(err);
+        });
+    }).on("error", err => {
+        log("Download error: " + cleanMessage(err.message));
+        fs.unlink(tempFile, () => callback(err));
+    });
+}
+
 function download(toolName, callback) {
     const tool = tools[toolName];
     const toolPath = tool.path;
@@ -77,66 +143,7 @@ function download(toolName, callback) {
         message: `Starting download of ${toolName}...`
     });
 
-    function startDownload(url) {
-        https.get(url, res => {
-            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-                log(`Redirect ${res.statusCode} -> ${res.headers.location}`);
-                return startDownload(res.headers.location);
-            }
-            if (res.statusCode !== 200) {
-                return callback(new Error("Download failed: " + res.statusCode));
-            }
-            let file;
-            try {
-                file = fs.createWriteStream(tempFile);
-            } catch (err) {
-                log("WriteStream error: " + cleanMessage(err.message));
-                return callback(err);
-            }
-            res.pipe(file);
-            file.on("finish", () => {
-                file.close(() => {
-                    log("Download finished: " + tempFile);
-                    if (!isZip) {
-                        sendResponse({
-                            message: `${toolName} successfully installed`
-                        });
-                        return callback(null);
-                    }
-                    log(`Extracting ${toolName} from zip`);
-                    fs.createReadStream(tempFile)
-                        .pipe(unzipper.Parse())
-                        .on("entry", entry => {
-                            const fileName = entry.path;
-                            if (fileName.endsWith(path.basename(toolPath))) {
-                                entry.pipe(fs.createWriteStream(toolPath));
-                            } else {
-                                entry.autodrain();
-                            }
-                        })
-                        .on("close", () => {
-                            if (fs.existsSync(tempFile)) {
-                                fs.unlinkSync(tempFile);
-                            }
-                            sendResponse({
-                                message: `${toolName} successfully installed`
-                            });
-                            log(`${toolName} extracted to ${toolPath}`);
-                            callback(null);
-                        })
-                        .on("error", err => callback(err));
-                });
-            });
-            file.on("error", err => {
-                log("File stream error: " + cleanMessage(err.message));
-                callback(err);
-            });
-        }).on("error", err => {
-            log("Download error: " + cleanMessage(err.message));
-            fs.unlink(tempFile, () => callback(err));
-        });
-    }
-    startDownload(toolUrl);
+    downloadToFile(toolUrl, tempFile, toolPath, toolName, isZip, callback);
 }
 
 function installIfNotExists(toolName, callback) {
