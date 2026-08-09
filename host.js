@@ -246,6 +246,34 @@ function readFramedMessage(buffer) {
     };
 }
 
+function resolveUrls(msg) {
+    if (msg.urls) {
+        log("Using URLs from popup terminal");
+        return msg.urls;
+    }
+    if (!fs.existsSync(urlsFile)) {
+        log("urls.txt not found");
+        sendResponse({
+            type: "NATIVE_DISCONNECT",
+            error: "urls.txt not found. Please export your URLs first by clicking the Export button."
+        });
+        return null;
+    }
+    log("Using URLs from urls.txt");
+    const urls = fs.readFileSync(urlsFile, "utf-8")
+        .split(/\r?\n/)
+        .filter(Boolean);
+    if (urls.length === 0) {
+        log("urls.txt empty");
+        sendResponse({
+            type: "NATIVE_DISCONNECT",
+            error: "urls.txt empty. Please export your URLs first by clicking the Export button."
+        });
+        return null;
+    }
+    return urls;
+}
+
 let buffer = Buffer.alloc(0);
 process.stdin.on("data", async (chunk) => {
     buffer = Buffer.concat([buffer, chunk]);
@@ -263,31 +291,9 @@ process.stdin.on("data", async (chunk) => {
                         recursive: true
                     });
                 }
-                let urls = [];
-                if (msg.urls) {
-                    log("Using URLs from popup terminal");
-                    urls = msg.urls;
-                } else {
-                    if (!fs.existsSync(urlsFile)) {
-                        log("urls.txt not found");
-                        sendResponse({
-                            type: "NATIVE_DISCONNECT",
-                            error: "urls.txt not found. Please export your URLs first by clicking the Export button."
-                        });
-                        return;
-                    }
-                    log("Using URLs from urls.txt");
-                    urls = fs.readFileSync(urlsFile, "utf-8")
-                        .split(/\r?\n/)
-                        .filter(Boolean);
-                    if (urls.length === 0) {
-                        log("urls.txt empty");
-                        sendResponse({
-                            type: "NATIVE_DISCONNECT",
-                            error: "urls.txt empty. Please export your URLs first by clicking the Export button."
-                        });
-                        return;
-                    }
+                const urls = resolveUrls(msg);
+                if (!urls) {
+                    return;
                 }
                 const ytDlpPath = tools["yt-dlp"].path;
                 const ffmpegPath = tools["ffmpeg"].path;
