@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { freshHost } = require("./helpers/env.js");
+const { freshHost } = require("../test-helpers/env.js");
 
 function frame(obj) {
     const json = JSON.stringify(obj);

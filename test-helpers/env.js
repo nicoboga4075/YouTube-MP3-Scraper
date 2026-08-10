@@ -7,7 +7,7 @@ const util = require("node:util");
 const { EventEmitter } = require("node:events");
 const unzipper = require("unzipper");
 
-const HOST_PATH = require.resolve("../../host.js");
+const HOST_PATH = require.resolve("../host.js");
 const REAL_EXEC_FILE = child_process.execFile;
 const REAL_PROMISIFY = util.promisify.bind(util);
 
@@ -15,7 +15,11 @@ class FakeStream extends EventEmitter {
     close(cb) {
         if (cb) process.nextTick(cb);
     }
-    autodrain() {}
+    autodrain() {
+        // Intentionally empty: mimics unzipper's entry.autodrain(), which
+        // just discards a non-matching zip entry's data — there's no real
+        // stream content here for the fake to drain.
+    }
 }
 
 /**

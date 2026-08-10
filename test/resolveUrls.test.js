@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { freshHost } = require("./helpers/env.js");
+const { freshHost } = require("../test-helpers/env.js");
 
 test("resolveUrls", async (t) => {
     await t.test("uses msg.urls when present, without touching urls.txt", (t) => {

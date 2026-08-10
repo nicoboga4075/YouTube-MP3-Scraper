@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { freshHost } = require("./helpers/env.js");
+const { freshHost } = require("../test-helpers/env.js");
 
 test("installIfNotExists", async (t) => {
     await t.test("skips downloading when the tool already exists", async (t) => {
