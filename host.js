@@ -37,7 +37,9 @@ function cleanMessage(message) {
     return (message || "Unknown error occured").normalize("NFKD").replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
 }
 
-log("Host started");
+if (require.main === module) {
+    log("Host started");
+}
 
 const { execSync, execFile } = require("node:child_process");
 if (!require("node:fs").existsSync("node_modules")) {
@@ -521,7 +523,8 @@ async function handleInstallCommand(msg) {
 }
 
 let buffer = Buffer.alloc(0);
-process.stdin.on("data", async (chunk) => {
+
+async function processChunk(chunk) {
     buffer = Buffer.concat([buffer, chunk]);
     let frame;
     while ((frame = readFramedMessage(buffer))) {
@@ -538,10 +541,38 @@ process.stdin.on("data", async (chunk) => {
                 continue;
             }
             if (!(await handleInstallCommand(msg))) {
-                return;
+                continue;
             }
         } catch (err) {
             log("JSON parse error: " + cleanMessage(err.message));
         }
     }
-});
+}
+
+if (require.main === module) {
+    process.stdin.on("data", processChunk);
+}
+
+module.exports = {
+    log,
+    cleanMessage,
+    sendResponse,
+    tools,
+    download,
+    extractToolFromZip,
+    downloadToFile,
+    installIfNotExists,
+    installAllTools,
+    formatTime,
+    formatBytes,
+    isValidAudio,
+    readFramedMessage,
+    fetchUrlInfo,
+    downloadAudio,
+    isNonFatalError,
+    isMusicFile,
+    resolveUrls,
+    processUrl,
+    handleInstallCommand,
+    processChunk
+};
