@@ -95,6 +95,9 @@ bgPort.onDisconnect.addListener(() => {
                 if (lastRecord.toLowerCase().includes('node') || lastRecord.includes('fichier de commandes.') || lastRecord.includes('batch file.')) {
                     outputTerminal.value += "> Check if Node.js is installed and well recognized or used on your laptop.\n";
                 }
+            })
+            .catch(() => {
+                // host.log is optional diagnostics; ignore if unreadable.
             });
     } else {
         statusTerminal.textContent = `Status: Idle`;

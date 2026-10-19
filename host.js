@@ -523,30 +523,35 @@ async function handleInstallCommand(msg) {
 }
 
 let buffer = Buffer.alloc(0);
+// Messages are processed one at a time, in arrival order, even across chunks.
+let messageQueue = Promise.resolve();
 
-async function processChunk(chunk) {
+async function handleMessage(msgText) {
+    try {
+        const msg = JSON.parse(msgText);
+        log("Message: " + JSON.stringify(msg));
+        if (msg.command === "install") {
+            await handleInstallCommand(msg);
+            return;
+        }
+        log("Unknown command received");
+        sendResponse({
+            message: "Unknown command"
+        });
+    } catch (err) {
+        log("JSON parse error: " + cleanMessage(err.message));
+    }
+}
+
+function processChunk(chunk) {
     buffer = Buffer.concat([buffer, chunk]);
     let frame;
     while ((frame = readFramedMessage(buffer))) {
         const msgText = frame.msgText;
         buffer = frame.rest;
-        try {
-            const msg = JSON.parse(msgText);
-            log("Message: " + JSON.stringify(msg));
-            if (msg.command !== "install") {
-                log("Unknown command received");
-                sendResponse({
-                    message: "Unknown command"
-                });
-                continue;
-            }
-            if (!(await handleInstallCommand(msg))) {
-                continue;
-            }
-        } catch (err) {
-            log("JSON parse error: " + cleanMessage(err.message));
-        }
+        messageQueue = messageQueue.then(() => handleMessage(msgText));
     }
+    return messageQueue;
 }
 
 if (require.main === module) {
