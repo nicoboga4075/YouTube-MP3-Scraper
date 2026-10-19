@@ -8,8 +8,9 @@
     "unzipper": "^0.12.5"
   },
   "devDependencies": {
-    "terser": "^5.51.2",
-    "auto-changelog": "^2.7.0"
+    "auto-changelog": "^2.7.0",
+    "c8": "^12.0.0",
+    "terser": "^5.51.2"
   },
   "auto-changelog": {
     "commitLimit": false,
@@ -21,7 +22,7 @@
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "test": "node --test",
-    "test:coverage": "node --test --experimental-test-coverage --test-coverage-exclude=\"tests/**\" --test-reporter=tap --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info",
+    "test:coverage": "c8 --reporter=lcov --reporter=text node --test",
     "changelog": "auto-changelog",
     "uglify:js": "node -e \"const fs=require('fs'); const {execSync}=require('child_process'); fs.mkdirSync('dist',{recursive:true}); fs.readdirSync('.').filter(f=>f.endsWith('.js')).forEach(f=>execSync('terser '+f+' --compress --mangle --output dist/'+f,{stdio:'inherit'}));\"",
     "build": "npm run clean && npm run uglify:js",

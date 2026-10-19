@@ -38,19 +38,18 @@ jobs:
       if: matrix.node-version != '22.x'
     - name: Run tests with coverage
       if: matrix.node-version == '22.x'
-      shell: bash
       run: |
-        npm run test:coverage | tee coverage.txt
+        npm run test:coverage
         {
           echo '## Coverage'
           echo '```'
-          sed -n '/start of coverage report/,/end of coverage report/p' coverage.txt | sed 's/^# //' | sed '1d;$d'
+          npx c8 report --reporter=text
           echo '```'
         } >> "$GITHUB_STEP_SUMMARY"
     - name: Upload coverage to Codecov
       if: matrix.node-version == '22.x'
       uses: codecov/codecov-action@v7
       with:
-        files: ./lcov.info
+        files: ./coverage/lcov.info
         use_oidc: true
         fail_ci_if_error: false
