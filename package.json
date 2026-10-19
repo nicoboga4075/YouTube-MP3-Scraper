@@ -23,6 +23,7 @@
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "test": "node --test",
     "test:coverage": "c8 --reporter=lcov --reporter=text node --test",
+    "coverage:report": "c8 report --reporter=text",
     "changelog": "auto-changelog",
     "uglify:js": "node -e \"const fs=require('fs'); const {execSync}=require('child_process'); fs.mkdirSync('dist',{recursive:true}); fs.readdirSync('.').filter(f=>f.endsWith('.js')).forEach(f=>execSync('terser '+f+' --compress --mangle --output dist/'+f,{stdio:'inherit'}));\"",
     "build": "npm run clean && npm run uglify:js",
