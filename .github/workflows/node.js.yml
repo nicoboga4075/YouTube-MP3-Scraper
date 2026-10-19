@@ -31,3 +31,15 @@ jobs:
     - run: npm ci --ignore-scripts
     - run: npm run build --if-present
     - run: npm test --if-present
+      if: matrix.node-version != '22.x'
+    - name: Run tests with coverage
+      if: matrix.node-version == '22.x'
+      shell: bash
+      run: |
+        npm run test:coverage | tee coverage.txt
+        {
+          echo '## Coverage'
+          echo '```'
+          sed -n '/start of coverage report/,/end of coverage report/p' coverage.txt | sed 's/^# //' | sed '1d;$d'
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
