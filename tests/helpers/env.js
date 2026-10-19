@@ -7,7 +7,7 @@ const util = require("node:util");
 const { EventEmitter } = require("node:events");
 const unzipper = require("unzipper");
 
-const HOST_PATH = require.resolve("../host.js");
+const HOST_PATH = require.resolve("../../host.js");
 const REAL_EXEC_FILE = child_process.execFile;
 const REAL_PROMISIFY = util.promisify.bind(util);
 
