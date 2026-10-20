@@ -117,6 +117,8 @@ Start every commit message with the emoji from [gitmoji.dev](https://gitmoji.dev
 
 One emoji per commit: pick the one for the main intent of the change. The `Release vX.Y.Z` commits created by `npm run release` keep their format, since `auto-changelog` excludes them through `ignoreCommitPattern: "^Release v"`.
 
+Pull request titles follow the same rule: the gitmoji of the main change, then the title. Dependabot gets `⬆️` from the `commit-message` prefix of `.github/dependabot.yml`.
+
 ## Comments
 
 Prefer single-line comments, even long ones, in every language (JS, HTML, CSS, batch): no comment wrapped over several lines, and no numbered lists (`1.`, `2.`) inside a comment. When a comment explains several cases or branches, put one single-line comment on each branch instead of a block above them.

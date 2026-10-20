@@ -6,3 +6,6 @@ updates:
     # Check the npm registry for updates every day (weekdays)
     schedule:
       interval: "daily"
+    # The gitmoji of a dependency upgrade, as every commit of CLAUDE.md: the pull request titles are built from the commit message, so they get it too
+    commit-message:
+      prefix: "⬆️"
