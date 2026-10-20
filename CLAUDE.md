@@ -10,7 +10,7 @@ CI runs on GitHub Actions, with Codecov for coverage and SonarCloud for quality.
 
 | Area | Tools (major version) |
 |---|---|
-| Runtime | Node.js 22 (installed by `host.cmd` when missing; CI matrix 20.x, 22.x, 24.x), npm |
+| Runtime | Node.js 22.23.3 (`.nvmrc`, read by the coverage job; CI build matrix `lts/iron` (20), `lts/jod` (22) and `lts/krypton` (24); `host.cmd` installs the same version when missing), npm |
 | Extension | Chrome Manifest V3, Vanilla JS (CommonJS), HTML 5, CSS 3, Terser 5 |
 | Host | Node.js built-ins (`https`, `child_process`, `fs`), unzipper 0, yt-dlp (latest release), ffmpeg / ffplay / ffprobe (gyan.dev essentials build) |
 | Tests | `node:test` runner, `node:assert/strict`, c8 12 |
@@ -31,11 +31,13 @@ No linter is configured.
 
 ## Environment and setup
 
+- Node.js of `.nvmrc` (22.23.3; 20 or later works), then `npm ci`.
+- Always use an LTS version of Node.js for the builds and the tests (`.nvmrc`, the GitHub workflows, `host.cmd`), never a Current (odd) release; Node 20, past its end of life, stays in the CI build matrix as `lts/iron` (its last LTS release, 20.20.2) for backward compatibility only.
 - Windows only: `host.cmd`, `host.js` and `com.example.ytdlp_installer.json` hard-code `C:\yt-dlp` and `C:\ffmpeg\bin`.
-- `npm install`, then `npm run build`; load the folder unpacked from `chrome://extensions` (Developer mode).
+- `npm run build`, then load the folder unpacked from `chrome://extensions` (Developer mode).
 - Native host registration: the registry key `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.example.ytdlp_installer` points to `com.example.ytdlp_installer.json`, whose `allowed_origins` must match the extension ID.
 - Firefox must be installed and signed in to YouTube: yt-dlp reads its cookies (`--cookies-from-browser firefox`).
-- `host.cmd` resolves Node (PATH → nvm → portable 22.22.0 download), logs to `stdio.log`; `host.js` runs `npm install` on load if `node_modules/` is missing.
+- `host.cmd` resolves Node (PATH → nvm → portable 22.23.3 download), logs to `stdio.log`; `host.js` runs `npm install` on load if `node_modules/` is missing.
 
 ## Architecture
 
@@ -43,7 +45,7 @@ Message chain: `popup.js` ⇄ `background.js` ⇄ `host.cmd` → `host.js`.
 
 - **`popup.js`** — UI. Opens a long-lived port `chrome.runtime.connect({name:"popup"})`, sends `handcheck`, then `{command:"install", urls?}`. Scan injects a function via `chrome.scripting.executeScript`: it cannot capture popup variables (inputs go through `args`, results come back via the return value). Three download modes: the active `/watch?v=` tab, the URLs of a Scan sent in memory, or (no `urls` field) `urls.txt` read by the host.
 - **`background.js`** — service worker, a plain relay. Opens a fresh `connectNative("com.example.ytdlp_installer")` on each `install` and forwards host messages unchanged; emits `NATIVE_DISCONNECT` on disconnect.
-- **`host.cmd`** — resolves Node (PATH → nvm → portable 22.22.0 download), logs to `stdio.log`, launches `C:\yt-dlp\host.js` (absolute path).
+- **`host.cmd`** — resolves Node (PATH → nvm → portable 22.23.3 download), logs to `stdio.log`, launches `C:\yt-dlp\host.js` (absolute path).
 - **`host.js`** — all the business logic:
   - Native Messaging protocol: frames are a 4-byte LE length prefix + JSON (`readFramedMessage`, `sendResponse`). `processChunk` accumulates stdin chunks and serializes handling through the `messageQueue` promise.
   - **stdout is reserved for the protocol**: all diagnostics go through `log()` → `host.log`. A `console.log` to stdout would corrupt the stream.
@@ -64,7 +66,7 @@ Message chain: `popup.js` ⇄ `background.js` ⇄ `host.cmd` → `host.js`.
 
 - One branch, `main`. Commit only when asked, and never push until asked.
 - `origin` is GitHub (`nicoboga4075/YouTube-MP3-Scraper`); Dependabot opens daily npm update PRs.
-- `.github/workflows/node.js.yml` runs on each push and PR to `main`: `npm ci --ignore-scripts`, build and tests on Node 20/22/24; coverage is only computed and uploaded to Codecov on 22.x. SonarCloud uses automatic analysis (`.sonarcloud.properties`).
+- Each push and PR to `main` runs `.github/workflows/node.js.yml`: the `build` job runs `npm ci --ignore-scripts`, build and tests on `lts/iron`, `lts/jod` and `lts/krypton`; then the `coverage` job, on the Node.js of `.nvmrc`, writes the coverage to the job summary and uploads it to Codecov (OIDC). SonarCloud uses automatic analysis (`.sonarcloud.properties`).
 - `.github/workflows/update-ytdlp.yml` runs daily at 8:00 UTC and opens a PR bumping `package.json#ytdlpVersion`; the field is informational (the host always downloads the latest yt-dlp release).
 - Releases: `npm run release` (see "Commands").
 

@@ -124,8 +124,8 @@ Le terminal est vide ou ne contient pas d'URLs YouTube valides. Le popup envoie 
 Point d'entrée appelé directement par Chrome. Gère la résolution de Node.js selon l'environnement de l'utilisateur, dans cet ordre de priorité :
 
 1. **Node.js dans le PATH système** — détecté via `node -v`, utilisé directement
-2. **nvm (Node Version Manager)** — si présent dans `%LOCALAPPDATA%\nvm`, utilise la première version installée ou installe automatiquement la `22.22.0`
-3. **Node.js portable** — si aucune installation n'est trouvée, télécharge et extrait `node-v22.22.0-win-x64.zip` depuis nodejs.org dans `%LOCALAPPDATA%\Programs\nodejs`
+2. **nvm (Node Version Manager)** — si présent dans `%LOCALAPPDATA%\nvm`, utilise la version LTS `22.23.3`, installée automatiquement si absente
+3. **Node.js portable** — si aucune installation n'est trouvée, télécharge et extrait `node-v22.23.3-win-x64.zip` depuis nodejs.org dans `%LOCALAPPDATA%\Programs\nodejs`
 
 Toutes les tentatives et versions détectées sont journalisées dans `stdio.log`. Les erreurs du script Node.js sont également redirigées vers ce fichier.
 
@@ -152,7 +152,7 @@ Vérifie la présence de `node_modules/` et lance `npm install --no-audit --no-f
 | `child_process` | natif Node.js | built-in | Exécution de `yt-dlp`, `ffprobe`, `npm install` (`execSync`, `execFile`) |
 | `util` | natif Node.js | built-in | Promisification de `execFile` via `util.promisify` |
 
-> Version Node.js cible : **22.22.0** (installée automatiquement par `host.cmd` si absente).
+> Version Node.js cible : **22.23.3** (installée automatiquement par `host.cmd` si absente).
 
 #### Étape 1 — Installation des outils
 
@@ -367,7 +367,7 @@ L'utilisateur active le mode développeur sur `chrome://extensions/` et glisse-d
 
 ## ✅ Checklist de déploiement
 
-- [ ] Node.js disponible (dans le PATH, via nvm, ou sera installé automatiquement en v22.22.0 par `host.cmd`)
+- [ ] Node.js disponible (dans le PATH, via nvm, ou sera installé automatiquement en v22.23.3 par `host.cmd`)
 - [ ] `host.cmd` pointe vers `C:\yt-dlp\host.js` avec un chemin absolu
 - [ ] `com.example.ytdlp_installer.json` présent dans `C:\yt-dlp\`
 - [ ] Clé de registre créée sous `HKCU\...\NativeMessagingHosts\com.example.ytdlp_installer`
