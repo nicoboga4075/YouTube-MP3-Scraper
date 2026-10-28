@@ -303,7 +303,8 @@ async function fetchUrlInfo(ytDlpPath, url) {
             url
         ],
         {
-            encoding: "utf8"
+            encoding: "utf8",
+            maxBuffer: 1024 * 1024 * 50
         }
     );
     return stdout;
