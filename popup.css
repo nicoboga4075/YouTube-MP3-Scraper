@@ -139,7 +139,7 @@ button.action-btn {
 	align-items: center;
 	justify-content: center;
 	gap: 7px;
-	transition: all 0.15s;
+	transition: background-color 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
 	position: relative;
 	overflow: hidden;
 }
